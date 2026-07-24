@@ -496,6 +496,74 @@ export const listMyOrders = createServerFn({ method: "GET" })
     return orders.data;
   });
 
+// ---------- 테스트 서버: 즉시 구매 (0원) ----------
+export const testInstantPurchase = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ idempotency_key: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+
+    const existing = await supabase
+      .from("orders")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("idempotency_key", data.idempotency_key)
+      .maybeSingle();
+    if (existing.data) return { order: existing.data, reused: true };
+
+    const product = await supabase
+      .from("products")
+      .select("*")
+      .eq("code", "INTENTLOCK_BETA_PASS_V1")
+      .eq("is_active", true)
+      .maybeSingle();
+    if (product.error || !product.data)
+      throw new Error("판매 중인 Beta Pass 를 찾을 수 없습니다.");
+
+    const orderNo = newOrderNo();
+    const nowIso = new Date().toISOString();
+    const insert = await supabase
+      .from("orders")
+      .insert({
+        order_no: orderNo,
+        user_id: userId,
+        product_id: product.data.id,
+        product_name: product.data.name,
+        amount_krw: product.data.amount_krw,
+        idempotency_key: data.idempotency_key,
+        status: "FULFILLED",
+      })
+      .select("*")
+      .single();
+    if (insert.error) throw new Error(insert.error.message);
+
+    const expiresAt = new Date(
+      Date.now() + product.data.access_days * 86400000,
+    ).toISOString();
+    await supabase.from("entitlements").upsert(
+      {
+        user_id: userId,
+        order_id: insert.data.id,
+        product_id: product.data.id,
+        status: "ACTIVE",
+        reports_remaining: product.data.report_quota,
+        granted_at: nowIso,
+        expires_at: expiresAt,
+      },
+      { onConflict: "order_id" },
+    );
+
+    await supabase.from("payment_events").insert({
+      order_id: insert.data.id,
+      event_type: "TEST_INSTANT_PURCHASE",
+      handler: "testInstantPurchase",
+      payload: { note: "0원 테스트 서버 즉시 지급" },
+    });
+    return { order: insert.data, reused: false };
+  });
+
 export const getOrderDetail = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ order_id: z.string().uuid() }).parse(input))
