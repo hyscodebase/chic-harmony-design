@@ -140,7 +140,7 @@ export const createContract = createServerFn({ method: "POST" })
         user_id: userId,
         version: nextVersion,
         natural_language: data.natural_language,
-        normalized: normalized as unknown as Record<string, unknown>,
+        normalized: normalized as unknown as never,
         purpose: normalized.purpose,
         amount_limit_krw: normalized.amount_limit_krw,
         fingerprint,
@@ -377,7 +377,7 @@ export const generateGuardianReport = createServerFn({ method: "POST" })
     if (new Date(ent.data.expires_at) < new Date()) throw new Error("이용권이 만료되었습니다.");
     if (ent.data.reports_remaining <= 0) throw new Error("잔여 리포트가 없습니다.");
 
-    const contracts = (ent.data.orders?.intent_contracts ?? []) as Array<{
+    const contracts = (ent.data.orders?.intent_contracts ?? []) as unknown as Array<{
       status: string;
       version: number;
       normalized: NormalizedContract;
@@ -407,7 +407,7 @@ export const generateGuardianReport = createServerFn({ method: "POST" })
         proposed_purpose: data.proposed_purpose,
         verdict: judgement.verdict,
         reason: judgement.reason,
-        raw: judgement as unknown as Record<string, unknown>,
+        raw: judgement as unknown as never,
       })
       .select("*")
       .single();
