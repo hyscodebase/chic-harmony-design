@@ -192,7 +192,8 @@ export const approveContract = createServerFn({ method: "POST" })
     if (new Date(contract.data.expires_at) < new Date())
       throw new Error("CONTRACT_EXPIRED: 계약이 만료되었습니다.");
 
-    const upd = await supabase
+    const admin = await getAdmin();
+    const upd = await admin
       .from("intent_contracts")
       .update({ status: "APPROVED", approved_at: new Date().toISOString() })
       .eq("id", data.contract_id)
