@@ -300,8 +300,9 @@ export const mockConfirmPayment = createServerFn({ method: "POST" })
     const receiptNo = `RCPT-${Date.now().toString(36).toUpperCase()}`;
     const nowIso = new Date().toISOString();
 
+    const admin = await getAdmin();
     // payment upsert
-    const payment = await supabase
+    const payment = await admin
       .from("payments")
       .upsert(
         {
@@ -322,13 +323,13 @@ export const mockConfirmPayment = createServerFn({ method: "POST" })
     if (payment.error) throw new Error(payment.error.message);
 
     // 주문/계약 전이
-    await supabase.from("orders").update({ status: "PAID", updated_at: nowIso }).eq("id", order.data.id);
-    await supabase.from("intent_contracts").update({ status: "CONSUMED" }).eq("id", contract.data.id);
+    await admin.from("orders").update({ status: "PAID", updated_at: nowIso }).eq("id", order.data.id);
+    await admin.from("intent_contracts").update({ status: "CONSUMED" }).eq("id", contract.data.id);
 
     // 이용권 지급
     const product = order.data.products as { access_days: number; report_quota: number };
     const expiresAt = new Date(Date.now() + product.access_days * 86400000).toISOString();
-    await supabase.from("entitlements").upsert(
+    await admin.from("entitlements").upsert(
       {
         user_id: userId,
         order_id: order.data.id,
@@ -340,7 +341,7 @@ export const mockConfirmPayment = createServerFn({ method: "POST" })
       },
       { onConflict: "order_id" },
     );
-    await supabase.from("orders").update({ status: "FULFILLED" }).eq("id", order.data.id);
+    await admin.from("orders").update({ status: "FULFILLED" }).eq("id", order.data.id);
 
     await supabase.from("payment_events").insert([
       {
