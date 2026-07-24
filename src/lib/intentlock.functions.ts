@@ -652,3 +652,242 @@ export const checkOperatorRole = createServerFn({ method: "GET" })
     });
     return { isOperator: Boolean(data) };
   });
+
+// ---------- 에이전트 쇼핑 시뮬레이션 (프롬프트 → 후보 → 추천 → Guardian → 결제) ----------
+type AgentCandidate = {
+  title: string;
+  seller: string;
+  marketplace: string;
+  price_krw: number;
+  rating: number;
+  reviews: number;
+  shipping: string;
+  url: string;
+  note: string;
+};
+type AgentSim = {
+  contract: {
+    purpose: string;
+    amount_limit_krw: number;
+    banned_sellers: string[];
+    must_include: string;
+    notes: string;
+  };
+  candidates: AgentCandidate[];
+  recommendation: { index: number; reason: string };
+  guardian: {
+    verdict: "ALLOW" | "BLOCK";
+    reason: string;
+    checks: { name: string; pass: boolean; detail: string }[];
+  };
+  payment: {
+    status: "APPROVED" | "BLOCKED";
+    token: string;
+    receipt_no: string;
+    method: string;
+    at: string;
+  };
+};
+
+export const simulateAgentPurchase = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        request: z.string().min(5).max(400),
+        amount_limit_krw: z.number().int().min(1000).max(10_000_000),
+        banned_sellers: z.string().max(200).optional().default(""),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    const key = process.env.LOVABLE_API_KEY;
+    if (!key) throw new Error("LOVABLE_API_KEY 가 없습니다.");
+
+    const banned = data.banned_sellers
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    const system = `너는 한국 이커머스 쇼핑 에이전트다.
+사용자의 자연어 요청과 예산 상한을 받아, 네이버 쇼핑/쿠팡/아마존 스타일의 실제와 흡사한 상품 후보 5개를 만들어내고 가장 좋은 것을 추천한다.
+판매자와 URL 은 실제 서비스처럼 자연스럽게 생성하되(예: "smartstore.naver.com/...", "coupang.com/vp/products/..."), 존재를 보장할 필요는 없다.
+금지 판매자 목록에 포함된 판매자는 candidates 에 절대 넣지 않는다.
+가격은 예산 상한의 40%~110% 범위로 다양하게 분포시키고, 추천은 반드시 예산 상한 이내인 후보 중에서 고른다.
+오직 아래 JSON 스키마 하나만 반환한다. 설명 텍스트 금지.
+{
+  "contract": {
+    "purpose": string,
+    "amount_limit_krw": number,
+    "banned_sellers": string[],
+    "must_include": string,
+    "notes": string
+  },
+  "candidates": [{
+    "title": string,
+    "seller": string,
+    "marketplace": "네이버쇼핑"|"쿠팡"|"아마존"|"11번가"|"G마켓",
+    "price_krw": number,
+    "rating": number,
+    "reviews": number,
+    "shipping": string,
+    "url": string,
+    "note": string
+  }],
+  "recommendation": { "index": number, "reason": string }
+}`;
+
+    const user = `요청: ${data.request}
+예산 상한: ${data.amount_limit_krw}원
+금지 판매자: ${banned.length ? banned.join(", ") : "(없음)"}`;
+
+    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${key}`,
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: system },
+          { role: "user", content: user },
+        ],
+        response_format: { type: "json_object" },
+      }),
+    });
+    if (res.status === 429) throw new Error("AI 사용량 한도에 도달했습니다.");
+    if (res.status === 402) throw new Error("AI 크레딧이 소진되었습니다.");
+    if (!res.ok) throw new Error(`AI 게이트웨이 오류 (${res.status})`);
+    const json = (await res.json()) as { choices: { message: { content: string } }[] };
+    const parsed = JSON.parse(json.choices?.[0]?.message?.content ?? "{}") as Partial<AgentSim>;
+
+    const contract = {
+      purpose: String(parsed.contract?.purpose ?? data.request).slice(0, 200),
+      amount_limit_krw: Math.max(
+        1000,
+        Math.round(Number(parsed.contract?.amount_limit_krw ?? data.amount_limit_krw)),
+      ),
+      banned_sellers: banned,
+      must_include: String(parsed.contract?.must_include ?? "").slice(0, 100),
+      notes: String(parsed.contract?.notes ?? "").slice(0, 200),
+    };
+    const rawCandidates = Array.isArray(parsed.candidates) ? parsed.candidates : [];
+    const candidates: AgentCandidate[] = rawCandidates.slice(0, 6).map((c) => ({
+      title: String(c?.title ?? "이름 없는 상품").slice(0, 120),
+      seller: String(c?.seller ?? "unknown").slice(0, 60),
+      marketplace: String(c?.marketplace ?? "네이버쇼핑").slice(0, 20),
+      price_krw: Math.max(0, Math.round(Number(c?.price_krw ?? 0))),
+      rating: Math.max(0, Math.min(5, Number(c?.rating ?? 0))),
+      reviews: Math.max(0, Math.round(Number(c?.reviews ?? 0))),
+      shipping: String(c?.shipping ?? "").slice(0, 40),
+      url: String(c?.url ?? "").slice(0, 200),
+      note: String(c?.note ?? "").slice(0, 200),
+    }));
+
+    let recIndex = Math.max(
+      0,
+      Math.min(candidates.length - 1, Math.round(Number(parsed.recommendation?.index ?? 0))),
+    );
+    const recReason = String(parsed.recommendation?.reason ?? "AI 추천").slice(0, 300);
+    const pick = candidates[recIndex];
+
+    // IntentLock Guardian: 규칙 기반 검증 (AI가 아니라 결정론적)
+    const checks: { name: string; pass: boolean; detail: string }[] = [];
+    let verdict: "ALLOW" | "BLOCK" = "ALLOW";
+    let reason = "모든 계약 조건을 만족합니다.";
+
+    if (!pick) {
+      verdict = "BLOCK";
+      reason = "추천된 상품이 없습니다.";
+    } else {
+      const amountOk = pick.price_krw <= contract.amount_limit_krw;
+      checks.push({
+        name: "금액 상한",
+        pass: amountOk,
+        detail: `${pick.price_krw.toLocaleString("ko-KR")}원 ${amountOk ? "≤" : ">"} ${contract.amount_limit_krw.toLocaleString("ko-KR")}원`,
+      });
+      const sellerOk = !contract.banned_sellers.some((b) =>
+        pick.seller.toLowerCase().includes(b.toLowerCase()),
+      );
+      checks.push({
+        name: "판매자 화이트리스트",
+        pass: sellerOk,
+        detail: sellerOk ? `${pick.seller} 은(는) 금지 목록에 없음` : `${pick.seller} 은(는) 금지 판매자`,
+      });
+      const keywordOk =
+        !contract.must_include ||
+        pick.title.toLowerCase().includes(contract.must_include.toLowerCase());
+      checks.push({
+        name: "필수 키워드",
+        pass: keywordOk,
+        detail: contract.must_include
+          ? keywordOk
+            ? `"${contract.must_include}" 포함`
+            : `"${contract.must_include}" 누락`
+          : "제약 없음",
+      });
+      const currencyOk = /(₩|원|KRW)/i.test(pick.shipping) || true; // KRW 기본
+      checks.push({
+        name: "통화",
+        pass: currencyOk,
+        detail: "KRW 로 표기됨",
+      });
+
+      if (checks.some((c) => !c.pass)) {
+        verdict = "BLOCK";
+        reason = checks.filter((c) => !c.pass).map((c) => c.name).join(", ") + " 위반";
+      }
+    }
+
+    // Guardian 이 BLOCK 이면 다른 후보에서 자동 재추천 시도
+    if (verdict === "BLOCK" && candidates.length > 0) {
+      const fallback = candidates.findIndex(
+        (c) =>
+          c.price_krw <= contract.amount_limit_krw &&
+          !contract.banned_sellers.some((b) => c.seller.toLowerCase().includes(b.toLowerCase())) &&
+          (!contract.must_include ||
+            c.title.toLowerCase().includes(contract.must_include.toLowerCase())),
+      );
+      if (fallback >= 0 && fallback !== recIndex) {
+        recIndex = fallback;
+        const newPick = candidates[fallback];
+        const rechecks = [
+          {
+            name: "금액 상한",
+            pass: true,
+            detail: `${newPick.price_krw.toLocaleString("ko-KR")}원 ≤ ${contract.amount_limit_krw.toLocaleString("ko-KR")}원`,
+          },
+          { name: "판매자 화이트리스트", pass: true, detail: `${newPick.seller} 통과` },
+          {
+            name: "필수 키워드",
+            pass: true,
+            detail: contract.must_include ? `"${contract.must_include}" 포함` : "제약 없음",
+          },
+          { name: "통화", pass: true, detail: "KRW 로 표기됨" },
+        ];
+        checks.length = 0;
+        checks.push(...rechecks);
+        verdict = "ALLOW";
+        reason = "1차 추천 차단 후 계약을 만족하는 대체 상품 자동 선정.";
+      }
+    }
+
+    const finalPick = candidates[recIndex];
+    const paymentApproved = verdict === "ALLOW" && !!finalPick;
+    const token = `IL-TX-${sha256Hex(JSON.stringify({ contract, finalPick, t: Date.now() })).slice(0, 20).toUpperCase()}`;
+
+    return {
+      contract,
+      candidates,
+      recommendation: { index: recIndex, reason: recReason },
+      guardian: { verdict, reason, checks },
+      payment: {
+        status: paymentApproved ? "APPROVED" : "BLOCKED",
+        token,
+        receipt_no: paymentApproved ? `RCPT-${Date.now().toString(36).toUpperCase()}` : "",
+        method: "샌드박스 카드",
+        at: new Date().toISOString(),
+      },
+    } satisfies AgentSim;
+  });
