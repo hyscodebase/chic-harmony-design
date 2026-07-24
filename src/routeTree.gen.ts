@@ -15,6 +15,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedPurchasesRouteImport } from './routes/_authenticated/purchases'
 import { Route as AuthenticatedCheckoutRouteImport } from './routes/_authenticated/checkout'
 import { Route as AuthenticatedBetaIndexRouteImport } from './routes/_authenticated/beta.index'
+import { Route as AuthenticatedBetaReportsIdRouteImport } from './routes/_authenticated/beta.reports.$id'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -45,6 +46,12 @@ const AuthenticatedBetaIndexRoute = AuthenticatedBetaIndexRouteImport.update({
   path: '/beta/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedBetaReportsIdRoute =
+  AuthenticatedBetaReportsIdRouteImport.update({
+    id: '/beta/reports/$id',
+    path: '/beta/reports/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -52,6 +59,7 @@ export interface FileRoutesByFullPath {
   '/checkout': typeof AuthenticatedCheckoutRoute
   '/purchases': typeof AuthenticatedPurchasesRoute
   '/beta/': typeof AuthenticatedBetaIndexRoute
+  '/beta/reports/$id': typeof AuthenticatedBetaReportsIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -59,6 +67,7 @@ export interface FileRoutesByTo {
   '/checkout': typeof AuthenticatedCheckoutRoute
   '/purchases': typeof AuthenticatedPurchasesRoute
   '/beta': typeof AuthenticatedBetaIndexRoute
+  '/beta/reports/$id': typeof AuthenticatedBetaReportsIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -68,12 +77,19 @@ export interface FileRoutesById {
   '/_authenticated/checkout': typeof AuthenticatedCheckoutRoute
   '/_authenticated/purchases': typeof AuthenticatedPurchasesRoute
   '/_authenticated/beta/': typeof AuthenticatedBetaIndexRoute
+  '/_authenticated/beta/reports/$id': typeof AuthenticatedBetaReportsIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/checkout' | '/purchases' | '/beta/'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/checkout'
+    | '/purchases'
+    | '/beta/'
+    | '/beta/reports/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/checkout' | '/purchases' | '/beta'
+  to: '/' | '/auth' | '/checkout' | '/purchases' | '/beta' | '/beta/reports/$id'
   id:
     | '__root__'
     | '/'
@@ -82,6 +98,7 @@ export interface FileRouteTypes {
     | '/_authenticated/checkout'
     | '/_authenticated/purchases'
     | '/_authenticated/beta/'
+    | '/_authenticated/beta/reports/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -134,6 +151,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedBetaIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/beta/reports/$id': {
+      id: '/_authenticated/beta/reports/$id'
+      path: '/beta/reports/$id'
+      fullPath: '/beta/reports/$id'
+      preLoaderRoute: typeof AuthenticatedBetaReportsIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -141,12 +165,14 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCheckoutRoute: typeof AuthenticatedCheckoutRoute
   AuthenticatedPurchasesRoute: typeof AuthenticatedPurchasesRoute
   AuthenticatedBetaIndexRoute: typeof AuthenticatedBetaIndexRoute
+  AuthenticatedBetaReportsIdRoute: typeof AuthenticatedBetaReportsIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCheckoutRoute: AuthenticatedCheckoutRoute,
   AuthenticatedPurchasesRoute: AuthenticatedPurchasesRoute,
   AuthenticatedBetaIndexRoute: AuthenticatedBetaIndexRoute,
+  AuthenticatedBetaReportsIdRoute: AuthenticatedBetaReportsIdRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
