@@ -88,8 +88,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:site", content: "@Lovable" },
       { name: "twitter:title", content: "IntentLock — 승인한 구매만 결제되는 Guarded Checkout" },
       { name: "twitter:description", content: "IntentLock 은 자연어로 승인한 계약과 주문 원본을 서버에서 대조해, 계약을 벗어난 결제를 원천 차단합니다." },
-      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/6bd62be5-0e20-43a9-9319-560f334a8f0e" },
-      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/6bd62be5-0e20-43a9-9319-560f334a8f0e" },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/uM5fw1J2CJUESR5WTcPAzmJPMEN2/social-images/social-1784880888758-6e4bd871-0f85-4ee2-b456-5f61b047a361.webp" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/uM5fw1J2CJUESR5WTcPAzmJPMEN2/social-images/social-1784880888758-6e4bd871-0f85-4ee2-b456-5f61b047a361.webp" },
     ],
     links: [
       {
