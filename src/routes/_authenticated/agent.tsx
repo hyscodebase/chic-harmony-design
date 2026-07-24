@@ -1,7 +1,21 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { simulateAgentPurchase } from "@/lib/intentlock.functions";
+import {
+  kbVerifyIntent,
+  kbIssueVirtualCard,
+  kbExchangeNetworkToken,
+  kbAuthorizePayment,
+} from "@/lib/kb-payment.functions";
+import type {
+  IntentTokenStatus,
+  KbPaymentStatus,
+  NetworkPaymentToken,
+  PaymentAuthorization,
+  VirtualCardCredential,
+  VirtualCardStatus,
+} from "@/lib/kb-payment.types";
 
 export const Route = createFileRoute("/_authenticated/agent")({
   component: AgentPage,
@@ -393,6 +407,16 @@ function AgentPage() {
           </section>
         </div>
       )}
+
+      {sim && !running && pick && sim.payment?.status === "APPROVED" && (
+        <KbNetworkPaymentSection
+          intentToken={sim.payment.token}
+          amount={pick.price_krw}
+          merchant={`${pick.marketplace} · ${pick.seller}`}
+          productTitle={pick.title}
+          guardianVerdict={sim.guardian?.verdict ?? "BLOCK"}
+        />
+      )}
     </main>
   );
 }
@@ -401,6 +425,392 @@ function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-baseline justify-between gap-4 border-b border-border/40 py-1.5">
       <span className="text-muted-foreground">{label}</span>
+      <span className="text-right font-medium">{value}</span>
+    </div>
+  );
+}
+
+// ---------- Section 5: KB Network Payment ----------
+
+function KbNetworkPaymentSection({
+  intentToken,
+  amount,
+  merchant,
+  productTitle,
+  guardianVerdict,
+}: {
+  intentToken: string;
+  amount: number;
+  merchant: string;
+  productTitle: string;
+  guardianVerdict: "ALLOW" | "BLOCK";
+}) {
+  const verifyFn = useServerFn(kbVerifyIntent);
+  const issueFn = useServerFn(kbIssueVirtualCard);
+  const exchangeFn = useServerFn(kbExchangeNetworkToken);
+  const authorizeFn = useServerFn(kbAuthorizePayment);
+
+  const [status, setStatus] = useState<KbPaymentStatus>("IDLE");
+  const [intentStatus, setIntentStatus] = useState<IntentTokenStatus>("ISSUED");
+  const [cardStatus, setCardStatus] = useState<VirtualCardStatus>("PENDING");
+  const [card, setCard] = useState<VirtualCardCredential | null>(null);
+  const [netToken, setNetToken] = useState<NetworkPaymentToken | null>(null);
+  const [auth, setAuth] = useState<PaymentAuthorization | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const binding = useMemo(
+    () => ({
+      orderId: `ORDER-${intentToken.slice(-12)}`,
+      intentToken,
+      userRef: "agent-demo",
+      merchant,
+      productTitle,
+      currency: "KRW" as const,
+      amount,
+      expiresAt: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+    }),
+    [intentToken, merchant, productTitle, amount],
+  );
+
+  const [idemBase] = useState(() =>
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `idem-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+  );
+
+  const canRun =
+    guardianVerdict === "ALLOW" && intentStatus === "ISSUED" && status === "IDLE";
+
+  const buttonLabel =
+    status === "AUTHORIZED"
+      ? "결제 승인 완료"
+      : status === "IDLE"
+        ? "KB 자동결제 실행"
+        : "결제 권한 발급 중...";
+
+  const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+  async function runFlow() {
+    if (!canRun) return;
+    setError(null);
+    try {
+      setStatus("VERIFYING_INTENT");
+      await sleep(600);
+      await verifyFn({ data: { intent: binding, idempotencyKey: `${idemBase}:verify` } });
+      setIntentStatus("VERIFIED");
+
+      setStatus("ISSUING_VIRTUAL_CARD");
+      await sleep(700);
+      const issued = await issueFn({
+        data: { intent: binding, idempotencyKey: `${idemBase}:issue` },
+      });
+      setCard(issued);
+      setCardStatus("ACTIVE");
+
+      setStatus("EXCHANGING_NETWORK_TOKEN");
+      await sleep(700);
+      const nt = await exchangeFn({
+        data: {
+          intent: binding,
+          cardId: issued.cardId,
+          idempotencyKey: `${idemBase}:exchange`,
+        },
+      });
+      setNetToken(nt);
+      setIntentStatus("EXCHANGED");
+
+      setStatus("AUTHORIZING_PAYMENT");
+      await sleep(800);
+      const result = await authorizeFn({
+        data: {
+          intent: binding,
+          cardId: issued.cardId,
+          networkToken: nt.networkToken,
+          idempotencyKey: `${idemBase}:auth`,
+        },
+      });
+      setAuth(result);
+      setIntentStatus("CONSUMED");
+      setCardStatus("DESTROYED");
+      setStatus("AUTHORIZED");
+    } catch (e) {
+      setError((e as Error).message);
+      setStatus("FAILED");
+    }
+  }
+
+  const steps: Array<{
+    title: string;
+    detail?: string;
+    value?: string;
+    state: "wait" | "active" | "done";
+    stateLabel: string;
+  }> = [
+    {
+      title: "Intent Token 검증",
+      value: intentToken,
+      state:
+        intentStatus === "ISSUED" && status === "IDLE"
+          ? "wait"
+          : status === "VERIFYING_INTENT"
+            ? "active"
+            : "done",
+      stateLabel: intentStatus === "ISSUED" ? "PENDING" : "VERIFIED",
+    },
+    {
+      title: "KB 결제 권한 발급",
+      detail: "등록 결제수단을 기반으로 가맹점·금액·유효시간이 제한된 일회용 가상카드를 발급합니다.",
+      state:
+        cardStatus === "PENDING" && status !== "ISSUING_VIRTUAL_CARD"
+          ? "wait"
+          : status === "ISSUING_VIRTUAL_CARD"
+            ? "active"
+            : cardStatus === "ACTIVE" || cardStatus === "USED" || cardStatus === "DESTROYED"
+              ? "done"
+              : "wait",
+      stateLabel: card ? "ISSUED" : "PENDING",
+    },
+    {
+      title: "Network Payment Token 교환",
+      value: netToken?.networkToken ?? "NPT-KB-••••••••",
+      detail: "Intent Token 을 카드 네트워크에서 사용할 수 있는 제한형 결제 토큰으로 교환합니다.",
+      state:
+        !netToken && status !== "EXCHANGING_NETWORK_TOKEN"
+          ? "wait"
+          : status === "EXCHANGING_NETWORK_TOKEN"
+            ? "active"
+            : "done",
+      stateLabel: netToken ? "TOKENIZED" : "PENDING",
+    },
+    {
+      title: "가맹점 결제 승인",
+      detail: "가상카드와 Network Payment Token 을 이용해 승인된 가맹점에 결제를 요청합니다.",
+      state:
+        status === "AUTHORIZING_PAYMENT"
+          ? "active"
+          : status === "AUTHORIZED"
+            ? "done"
+            : "wait",
+      stateLabel: status === "AUTHORIZED" ? "AUTHORIZED" : "WAITING",
+    },
+  ];
+
+  return (
+    <section className="mt-10 rounded-2xl border border-border bg-card p-6">
+      <div className="mb-6 flex items-baseline justify-between">
+        <h2 className="text-lg font-semibold tracking-tight">5. KB 네트워크 결제</h2>
+        <span className="text-xs uppercase tracking-widest text-muted-foreground">
+          {status === "AUTHORIZED" ? "PAYMENT AUTHORIZED" : "INTENT → PAYMENT TOKEN"}
+        </span>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Left: KB Virtual Card */}
+        <div className="rounded-xl border border-border p-5">
+          <div className="text-sm font-semibold">KB 일회용 가상카드</div>
+          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+            등록된 결제수단을 기반으로 이번 거래에서만 사용할 수 있는 결제 자격증명을 발급합니다.
+          </p>
+
+          <div
+            className="mt-4 rounded-xl border p-4"
+            style={{
+              borderColor: cardStatus === "DESTROYED" ? undefined : "#F5C518",
+              background:
+                cardStatus === "DESTROYED" ? "hsl(var(--muted))" : "#FFFBEA",
+            }}
+          >
+            <div className="flex items-center justify-between">
+              <div className="text-[10px] font-mono uppercase tracking-widest text-black/60">
+                KB Intent Card
+              </div>
+              <span
+                className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${
+                  cardStatus === "ACTIVE"
+                    ? "border-black bg-black text-white"
+                    : cardStatus === "DESTROYED"
+                      ? "border-border bg-background text-muted-foreground"
+                      : "border-border bg-background text-muted-foreground"
+                }`}
+              >
+                {cardStatus === "PENDING"
+                  ? "발급 대기"
+                  : cardStatus === "ACTIVE"
+                    ? "ACTIVE"
+                    : cardStatus === "USED"
+                      ? "USED"
+                      : "DESTROYED"}
+              </span>
+            </div>
+            <div className="mt-3 font-mono text-lg tracking-widest text-black">
+              {card?.maskedNumber ?? "5410 90•• •••• 4821"}
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-2 text-[11px] text-black/70">
+              <div>
+                <div className="text-[9px] uppercase tracking-widest opacity-60">결제 한도</div>
+                <div className="mt-0.5 font-medium">{amount.toLocaleString("ko-KR")}원</div>
+              </div>
+              <div>
+                <div className="text-[9px] uppercase tracking-widest opacity-60">사용 가능</div>
+                <div className="mt-0.5 font-medium">1회 · 5분 유효</div>
+              </div>
+              <div className="col-span-2">
+                <div className="text-[9px] uppercase tracking-widest opacity-60">허용 가맹점</div>
+                <div className="mt-0.5 font-medium">{merchant}</div>
+              </div>
+              <div className="col-span-2">
+                <div className="text-[9px] uppercase tracking-widest opacity-60">연결 결제수단</div>
+                <div className="mt-0.5 font-medium">
+                  {card?.linkedFundingSource ?? "KB국민카드 •••• 5678"}
+                </div>
+              </div>
+            </div>
+            <div className="mt-3 text-[10px] leading-relaxed text-black/50">
+              카드번호는 데모용 마스킹 번호이며 실제 결제정보가 아닙니다.
+            </div>
+          </div>
+
+          <ul className="mt-4 grid grid-cols-2 gap-2 text-xs">
+            {[
+              "가맹점 제한",
+              "금액 제한",
+              "1회 사용",
+              "5분 후 만료",
+            ].map((c) => (
+              <li key={c} className="flex items-center gap-2 rounded-lg border border-border/60 px-3 py-2">
+                <span className="grid h-4 w-4 place-items-center rounded-full bg-foreground text-[10px] text-background">
+                  ✓
+                </span>
+                <span>{c}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Right: Token exchange stepper */}
+        <div className="rounded-xl border border-border p-5">
+          <div className="text-sm font-semibold">네트워크 결제 토큰 교환</div>
+          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+            Intent Token 을 KB 결제 권한과 카드 네트워크 토큰으로 순차 교환합니다.
+          </p>
+          <ol className="mt-4 space-y-3">
+            {steps.map((s, i) => (
+              <li
+                key={s.title}
+                className={`rounded-lg border p-3 ${
+                  s.state === "active"
+                    ? "border-foreground"
+                    : s.state === "done"
+                      ? "border-foreground/30"
+                      : "border-border/60"
+                }`}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`grid h-6 w-6 place-items-center rounded-full border text-[10px] font-mono ${
+                        s.state === "done"
+                          ? "border-foreground bg-foreground text-background"
+                          : s.state === "active"
+                            ? "border-foreground"
+                            : "border-border text-muted-foreground"
+                      }`}
+                    >
+                      {s.state === "done" ? "✓" : i + 1}
+                    </span>
+                    <span className="text-sm font-medium">{s.title}</span>
+                  </div>
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                      s.stateLabel === "AUTHORIZED" || s.stateLabel === "TOKENIZED" || s.stateLabel === "VERIFIED" || s.stateLabel === "ISSUED"
+                        ? "bg-foreground text-background"
+                        : "border border-border text-muted-foreground"
+                    }`}
+                  >
+                    {s.stateLabel}
+                  </span>
+                </div>
+                {s.value && (
+                  <div className="mt-2 break-all font-mono text-[11px] text-muted-foreground">{s.value}</div>
+                )}
+                {s.detail && (
+                  <div className="mt-1 text-[11px] leading-relaxed text-muted-foreground">{s.detail}</div>
+                )}
+              </li>
+            ))}
+          </ol>
+        </div>
+      </div>
+
+      <div className="mt-6 flex flex-col items-start gap-2 border-t border-border pt-5 md:flex-row md:items-center md:justify-between">
+        <div className="text-xs text-muted-foreground">
+          {canRun
+            ? "Guardian 승인과 유효한 Intent Token 이 확인되었습니다."
+            : status === "AUTHORIZED"
+              ? "Intent Token 은 사용 완료(CONSUMED), 가상카드는 폐기(DESTROYED) 되었습니다."
+              : status === "IDLE"
+                ? "Guardian 승인과 유효한 Intent Token 이 필요합니다."
+                : "처리 중입니다. 잠시만 기다려 주세요."}
+        </div>
+        <button
+          type="button"
+          onClick={runFlow}
+          disabled={!canRun}
+          className="rounded-full bg-foreground px-6 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90 disabled:opacity-40"
+        >
+          {buttonLabel}
+        </button>
+      </div>
+
+      {error && (
+        <div className="mt-4 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive">
+          {error}
+        </div>
+      )}
+
+      {auth && (
+        <div
+          className="mt-6 rounded-xl border p-5"
+          style={{ borderColor: "#16a34a", background: "#f0fdf4" }}
+        >
+          <div className="flex items-baseline justify-between">
+            <div className="text-sm font-semibold text-green-900">
+              KB 네트워크 결제 승인 완료
+            </div>
+            <span className="rounded-full bg-green-600 px-2 py-0.5 text-[10px] font-medium text-white">
+              AUTHORIZED
+            </span>
+          </div>
+          <div className="mt-4 grid gap-2 text-xs text-green-950 md:grid-cols-2">
+            <KRow label="상품" value={auth.productTitle} />
+            <KRow label="판매자" value={auth.merchant} />
+            <KRow label="승인 금액" value={`${auth.amount.toLocaleString("ko-KR")}원`} />
+            <KRow label="사용 결제수단" value={auth.method} />
+            <KRow label="Network Token" value={`NPT-KB-•••• ${auth.networkTokenLast4}`} />
+            <KRow label="승인 번호" value={auth.approvalNo} />
+            <KRow label="승인 시간" value={new Date(auth.authorizedAt).toLocaleString("ko-KR")} />
+            <KRow label="Intent Token" value={auth.intentTokenStatus} />
+            <KRow label="가상카드" value={auth.virtualCardStatus} />
+          </div>
+          <div className="mt-4 text-xs leading-relaxed text-green-900">
+            사용자가 승인한 의도와 일치하는 거래에만 결제 권한이 사용되었습니다.
+          </div>
+        </div>
+      )}
+
+      <div className="mt-6 text-[11px] leading-relaxed text-muted-foreground">
+        본 화면은 KB의 일회용 가상카드 및 네트워크 토큰 발급 구조를 제안하기 위한 샌드박스
+        시뮬레이션입니다. 실제 운영 시에는 KB 카드·은행 시스템 및 카드 네트워크와의 연동과
+        별도 보안 심사가 필요합니다.
+      </div>
+    </section>
+  );
+}
+
+function KRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3 border-b border-green-900/10 py-1">
+      <span className="text-green-900/60">{label}</span>
       <span className="text-right font-medium">{value}</span>
     </div>
   );
