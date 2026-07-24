@@ -105,8 +105,9 @@ export const createContract = createServerFn({ method: "POST" })
     if (order.data.status !== "PENDING")
       throw new Error("계약을 수정할 수 있는 상태가 아닙니다.");
 
+    const admin = await getAdmin();
     // 이전 버전 SUPERSEDE
-    await supabase
+    await admin
       .from("intent_contracts")
       .update({ status: "SUPERSEDED" })
       .eq("order_id", order.data.id)
@@ -140,7 +141,7 @@ export const createContract = createServerFn({ method: "POST" })
     });
     const fingerprint = sha256Hex(fingerprintInput);
 
-    const insert = await supabase
+    const insert = await admin
       .from("intent_contracts")
       .insert({
         order_id: order.data.id,
