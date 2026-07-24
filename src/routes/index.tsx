@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import flowDiagram from "@/assets/intentlock-flow.png";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -116,6 +117,8 @@ function Home() {
           </div>
         </div>
       </section>
+
+      <HowItWorks />
 
       <footer className="mx-auto max-w-6xl px-6 py-16 text-xs text-muted-foreground">
         <div className="flex flex-col gap-2 border-t border-border pt-6 md:flex-row md:items-center md:justify-between">
