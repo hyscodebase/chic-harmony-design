@@ -474,12 +474,13 @@ export const operatorCancel = createServerFn({ method: "POST" })
       .single();
     if (insert.error) throw new Error(insert.error.message);
 
-    await supabase
+    const admin = await getAdmin();
+    await admin
       .from("payments")
       .update({ status: "CANCELED", canceled_at: nowIso })
       .eq("order_id", data.order_id);
-    await supabase.from("orders").update({ status: "CANCELED", updated_at: nowIso }).eq("id", data.order_id);
-    await supabase
+    await admin.from("orders").update({ status: "CANCELED", updated_at: nowIso }).eq("id", data.order_id);
+    await admin
       .from("entitlements")
       .update({ status: "REVOKED", revoked_at: nowIso })
       .eq("order_id", data.order_id);
