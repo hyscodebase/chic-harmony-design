@@ -800,7 +800,9 @@ export const simulateAgentPurchase = createServerFn({ method: "POST" })
         Math.round(Number(parsed.contract?.amount_limit_krw ?? data.amount_limit_krw)),
       ),
       banned_sellers: banned,
-      must_include: String(parsed.contract?.must_include ?? "").slice(0, 100),
+      // 사용자가 UI에서 필수 키워드를 지정하지 않는 이상 강제하지 않는다.
+      // (AI가 스스로 만들어낸 키워드로 결제가 차단되는 것을 방지)
+      must_include: "",
       notes: String(parsed.contract?.notes ?? "").slice(0, 200),
     };
     const rawCandidates = Array.isArray(parsed.candidates) ? parsed.candidates : [];
