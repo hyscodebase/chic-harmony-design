@@ -59,9 +59,9 @@ function PurchasesPage() {
 
       <div className="mt-8 space-y-4">
         {(data as OrderRow[] | undefined)?.map((o) => {
-          const pay = o.payments[0];
-          const ent = o.entitlements[0];
-          const cancel = o.cancellation_requests[0];
+          const pay = o.payments?.[0];
+          const ent = o.entitlements?.[0];
+          const cancel = o.cancellation_requests?.[0];
           return (
             <article key={o.id} className="rounded-lg border border-border bg-background p-6">
               <div className="flex flex-wrap items-start justify-between gap-2">
