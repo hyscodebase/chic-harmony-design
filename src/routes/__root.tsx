@@ -7,10 +7,11 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { supabase } from "@/integrations/supabase/client";
 
 function NotFoundComponent() {
   return (
@@ -119,8 +120,92 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+      <AuthSync />
+      <SiteChrome />
       <Outlet />
     </QueryClientProvider>
+  );
+}
+
+function AuthSync() {
+  const router = useRouter();
+  useEffect(() => {
+    const { data } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED") {
+        router.invalidate();
+      }
+    });
+    return () => data.subscription.unsubscribe();
+  }, [router]);
+  return null;
+}
+
+function SiteChrome() {
+  const [email, setEmail] = useState<string | null>(null);
+  useEffect(() => {
+    let mounted = true;
+    supabase.auth.getUser().then(({ data }) => {
+      if (mounted) setEmail(data.user?.email ?? null);
+    });
+    const { data } = supabase.auth.onAuthStateChange((_e, session) => {
+      if (mounted) setEmail(session?.user.email ?? null);
+    });
+    return () => {
+      mounted = false;
+      data.subscription.unsubscribe();
+    };
+  }, []);
+
+  return (
+    <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+        <Link to="/" className="flex items-center gap-2">
+          <span className="grid h-6 w-6 place-items-center bg-foreground text-background text-[10px] font-bold">
+            IL
+          </span>
+          <span className="text-sm font-semibold tracking-tight">IntentLock</span>
+          <span className="ml-2 rounded-full border border-border px-2 py-0.5 text-[10px] uppercase tracking-widest text-muted-foreground">
+            샌드박스
+          </span>
+        </Link>
+        <nav className="hidden gap-6 text-sm text-muted-foreground md:flex">
+          <Link to="/checkout" className="hover:text-foreground transition-colors">
+            구매
+          </Link>
+          <Link to="/purchases" className="hover:text-foreground transition-colors">
+            구매 내역
+          </Link>
+          <Link to="/beta" className="hover:text-foreground transition-colors">
+            Beta Pass
+          </Link>
+          <Link to="/operator" className="hover:text-foreground transition-colors">
+            운영자
+          </Link>
+        </nav>
+        <div className="flex items-center gap-3 text-xs">
+          {email ? (
+            <>
+              <span className="hidden text-muted-foreground md:inline">{email}</span>
+              <button
+                onClick={async () => {
+                  await supabase.auth.signOut();
+                  window.location.href = "/";
+                }}
+                className="rounded-full border border-border px-3 py-1.5 hover:bg-accent transition-colors"
+              >
+                로그아웃
+              </button>
+            </>
+          ) : (
+            <Link
+              to="/auth"
+              className="rounded-full bg-foreground px-4 py-1.5 text-background hover:opacity-90 transition-opacity"
+            >
+              로그인
+            </Link>
+          )}
+        </div>
+      </div>
+    </header>
   );
 }
