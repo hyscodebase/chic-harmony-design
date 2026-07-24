@@ -58,7 +58,8 @@ export const createOrder = createServerFn({ method: "POST" })
       throw new Error("판매 중인 Beta Pass 를 찾을 수 없습니다.");
 
     const orderNo = newOrderNo();
-    const insert = await supabase
+    const admin = await getAdmin();
+    const insert = await admin
       .from("orders")
       .insert({
         order_no: orderNo,
