@@ -175,6 +175,9 @@ function SiteChrome() {
           <Link to="/checkout" className="hover:text-foreground transition-colors">
             구매
           </Link>
+          <Link to="/agent" className="hover:text-foreground transition-colors">
+            AI 에이전트
+          </Link>
           <Link to="/purchases" className="hover:text-foreground transition-colors">
             구매 내역
           </Link>
