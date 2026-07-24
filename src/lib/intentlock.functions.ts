@@ -10,6 +10,12 @@ import {
   type NormalizedContract,
 } from "./intentlock.server";
 
+// Load service-role client only inside handlers (server-only module).
+async function getAdmin() {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  return supabaseAdmin;
+}
+
 // ---------- 상품 조회 ----------
 export const getBetaPassProduct = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -52,7 +58,8 @@ export const createOrder = createServerFn({ method: "POST" })
       throw new Error("판매 중인 Beta Pass 를 찾을 수 없습니다.");
 
     const orderNo = newOrderNo();
-    const insert = await supabase
+    const admin = await getAdmin();
+    const insert = await admin
       .from("orders")
       .insert({
         order_no: orderNo,
@@ -98,8 +105,9 @@ export const createContract = createServerFn({ method: "POST" })
     if (order.data.status !== "PENDING")
       throw new Error("계약을 수정할 수 있는 상태가 아닙니다.");
 
+    const admin = await getAdmin();
     // 이전 버전 SUPERSEDE
-    await supabase
+    await admin
       .from("intent_contracts")
       .update({ status: "SUPERSEDED" })
       .eq("order_id", order.data.id)
@@ -133,7 +141,7 @@ export const createContract = createServerFn({ method: "POST" })
     });
     const fingerprint = sha256Hex(fingerprintInput);
 
-    const insert = await supabase
+    const insert = await admin
       .from("intent_contracts")
       .insert({
         order_id: order.data.id,
@@ -184,7 +192,8 @@ export const approveContract = createServerFn({ method: "POST" })
     if (new Date(contract.data.expires_at) < new Date())
       throw new Error("CONTRACT_EXPIRED: 계약이 만료되었습니다.");
 
-    const upd = await supabase
+    const admin = await getAdmin();
+    const upd = await admin
       .from("intent_contracts")
       .update({ status: "APPROVED", approved_at: new Date().toISOString() })
       .eq("id", data.contract_id)
@@ -291,8 +300,9 @@ export const mockConfirmPayment = createServerFn({ method: "POST" })
     const receiptNo = `RCPT-${Date.now().toString(36).toUpperCase()}`;
     const nowIso = new Date().toISOString();
 
+    const admin = await getAdmin();
     // payment upsert
-    const payment = await supabase
+    const payment = await admin
       .from("payments")
       .upsert(
         {
@@ -313,13 +323,13 @@ export const mockConfirmPayment = createServerFn({ method: "POST" })
     if (payment.error) throw new Error(payment.error.message);
 
     // 주문/계약 전이
-    await supabase.from("orders").update({ status: "PAID", updated_at: nowIso }).eq("id", order.data.id);
-    await supabase.from("intent_contracts").update({ status: "CONSUMED" }).eq("id", contract.data.id);
+    await admin.from("orders").update({ status: "PAID", updated_at: nowIso }).eq("id", order.data.id);
+    await admin.from("intent_contracts").update({ status: "CONSUMED" }).eq("id", contract.data.id);
 
     // 이용권 지급
     const product = order.data.products as { access_days: number; report_quota: number };
     const expiresAt = new Date(Date.now() + product.access_days * 86400000).toISOString();
-    await supabase.from("entitlements").upsert(
+    await admin.from("entitlements").upsert(
       {
         user_id: userId,
         order_id: order.data.id,
@@ -331,7 +341,7 @@ export const mockConfirmPayment = createServerFn({ method: "POST" })
       },
       { onConflict: "order_id" },
     );
-    await supabase.from("orders").update({ status: "FULFILLED" }).eq("id", order.data.id);
+    await admin.from("orders").update({ status: "FULFILLED" }).eq("id", order.data.id);
 
     await supabase.from("payment_events").insert([
       {
@@ -413,7 +423,8 @@ export const generateGuardianReport = createServerFn({ method: "POST" })
       .single();
     if (insert.error) throw new Error(insert.error.message);
 
-    await supabase
+    const admin = await getAdmin();
+    await admin
       .from("entitlements")
       .update({ reports_remaining: ent.data.reports_remaining - 1 })
       .eq("id", ent.data.id)
@@ -463,12 +474,13 @@ export const operatorCancel = createServerFn({ method: "POST" })
       .single();
     if (insert.error) throw new Error(insert.error.message);
 
-    await supabase
+    const admin = await getAdmin();
+    await admin
       .from("payments")
       .update({ status: "CANCELED", canceled_at: nowIso })
       .eq("order_id", data.order_id);
-    await supabase.from("orders").update({ status: "CANCELED", updated_at: nowIso }).eq("id", data.order_id);
-    await supabase
+    await admin.from("orders").update({ status: "CANCELED", updated_at: nowIso }).eq("id", data.order_id);
+    await admin
       .from("entitlements")
       .update({ status: "REVOKED", revoked_at: nowIso })
       .eq("order_id", data.order_id);
@@ -513,6 +525,24 @@ export const testInstantPurchase = createServerFn({ method: "POST" })
       .maybeSingle();
     if (existing.data) return { order: existing.data, reused: true };
 
+    // 남용 방지: 사용자당 활성 무료 이용권 1개로 제한
+    const activeEnt = await supabase
+      .from("entitlements")
+      .select("id, order_id, expires_at, status")
+      .eq("user_id", userId)
+      .eq("status", "ACTIVE")
+      .gt("expires_at", new Date().toISOString())
+      .maybeSingle();
+    if (activeEnt.data) {
+      const priorOrder = await supabase
+        .from("orders")
+        .select("*")
+        .eq("id", activeEnt.data.order_id)
+        .maybeSingle();
+      if (priorOrder.data) return { order: priorOrder.data, reused: true };
+      throw new Error("이미 활성 이용권이 있습니다.");
+    }
+
     const product = await supabase
       .from("products")
       .select("*")
@@ -524,7 +554,8 @@ export const testInstantPurchase = createServerFn({ method: "POST" })
 
     const orderNo = newOrderNo();
     const nowIso = new Date().toISOString();
-    const insert = await supabase
+    const admin = await getAdmin();
+    const insert = await admin
       .from("orders")
       .insert({
         order_no: orderNo,
@@ -542,7 +573,7 @@ export const testInstantPurchase = createServerFn({ method: "POST" })
     const expiresAt = new Date(
       Date.now() + product.data.access_days * 86400000,
     ).toISOString();
-    await supabase.from("entitlements").upsert(
+    await admin.from("entitlements").upsert(
       {
         user_id: userId,
         order_id: insert.data.id,
