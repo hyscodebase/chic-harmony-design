@@ -525,6 +525,24 @@ export const testInstantPurchase = createServerFn({ method: "POST" })
       .maybeSingle();
     if (existing.data) return { order: existing.data, reused: true };
 
+    // 남용 방지: 사용자당 활성 무료 이용권 1개로 제한
+    const activeEnt = await supabase
+      .from("entitlements")
+      .select("id, order_id, expires_at, status")
+      .eq("user_id", userId)
+      .eq("status", "ACTIVE")
+      .gt("expires_at", new Date().toISOString())
+      .maybeSingle();
+    if (activeEnt.data) {
+      const priorOrder = await supabase
+        .from("orders")
+        .select("*")
+        .eq("id", activeEnt.data.order_id)
+        .maybeSingle();
+      if (priorOrder.data) return { order: priorOrder.data, reused: true };
+      throw new Error("이미 활성 이용권이 있습니다.");
+    }
+
     const product = await supabase
       .from("products")
       .select("*")
@@ -536,7 +554,8 @@ export const testInstantPurchase = createServerFn({ method: "POST" })
 
     const orderNo = newOrderNo();
     const nowIso = new Date().toISOString();
-    const insert = await supabase
+    const admin = await getAdmin();
+    const insert = await admin
       .from("orders")
       .insert({
         order_no: orderNo,
@@ -554,7 +573,7 @@ export const testInstantPurchase = createServerFn({ method: "POST" })
     const expiresAt = new Date(
       Date.now() + product.data.access_days * 86400000,
     ).toISOString();
-    await supabase.from("entitlements").upsert(
+    await admin.from("entitlements").upsert(
       {
         user_id: userId,
         order_id: insert.data.id,
