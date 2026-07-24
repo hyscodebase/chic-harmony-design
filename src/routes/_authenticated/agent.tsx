@@ -56,16 +56,24 @@ function AgentPage() {
     if (!running || !sim) return;
     setDoneStages([]);
     let i = 0;
-    setActiveStage(STAGES[0].id);
+    setActiveStage(STAGES[0]?.id ?? null);
     const timer = setInterval(() => {
-      setDoneStages((prev) => [...prev, STAGES[i].id]);
+      const current = STAGES[i];
+      if (!current) {
+        clearInterval(timer);
+        setActiveStage(null);
+        setRunning(false);
+        return;
+      }
+      setDoneStages((prev) => [...prev, current.id]);
       i += 1;
-      if (i >= STAGES.length) {
+      const next = STAGES[i];
+      if (!next) {
         clearInterval(timer);
         setActiveStage(null);
         setRunning(false);
       } else {
-        setActiveStage(STAGES[i].id);
+        setActiveStage(next.id);
       }
     }, 850);
     return () => clearInterval(timer);
@@ -90,7 +98,10 @@ function AgentPage() {
     }
   }
 
-  const pick = sim ? sim.candidates[sim.recommendation.index] : null;
+  const pick =
+    sim && sim.candidates && sim.recommendation
+      ? sim.candidates[sim.recommendation.index] ?? null
+      : null;
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-14">
@@ -240,8 +251,8 @@ function AgentPage() {
               </span>
             </div>
             <div className="grid gap-3">
-              {sim.candidates.map((c, i) => {
-                const isPick = i === sim.recommendation.index;
+              {(sim.candidates ?? []).map((c, i) => {
+                const isPick = i === sim.recommendation?.index;
                 return (
                   <div
                     key={i}
@@ -283,7 +294,7 @@ function AgentPage() {
             {pick && (
               <div className="mt-4 rounded-lg border border-border/60 bg-background p-3 text-xs text-muted-foreground">
                 <span className="text-foreground">추천 사유 · </span>
-                {sim.recommendation.reason}
+                {sim.recommendation?.reason ?? "—"}
               </div>
             )}
           </section>
@@ -291,7 +302,7 @@ function AgentPage() {
           {/* Guardian */}
           <section
             className={`rounded-2xl border p-6 ${
-              sim.guardian.verdict === "ALLOW"
+              sim.guardian?.verdict === "ALLOW"
                 ? "border-foreground bg-card"
                 : "border-destructive/60 bg-destructive/5"
             }`}
@@ -300,16 +311,16 @@ function AgentPage() {
               <h2 className="text-lg font-semibold tracking-tight">3. Guardian 판정</h2>
               <span
                 className={`rounded-full px-3 py-1 text-xs font-medium ${
-                  sim.guardian.verdict === "ALLOW"
+                  sim.guardian?.verdict === "ALLOW"
                     ? "bg-foreground text-background"
                     : "bg-destructive text-destructive-foreground"
                 }`}
               >
-                {sim.guardian.verdict}
+                {sim.guardian?.verdict ?? "—"}
               </span>
             </div>
             <div className="space-y-2">
-              {sim.guardian.checks.map((c) => (
+              {(sim.guardian?.checks ?? []).map((c) => (
                 <div
                   key={c.name}
                   className="flex items-center justify-between rounded-lg border border-border/60 bg-background px-4 py-3 text-xs"
@@ -332,14 +343,14 @@ function AgentPage() {
             </div>
             <div className="mt-4 text-xs text-muted-foreground">
               <span className="text-foreground">사유 · </span>
-              {sim.guardian.reason}
+              {sim.guardian?.reason ?? "—"}
             </div>
           </section>
 
           {/* Payment */}
           <section
             className={`rounded-2xl border p-6 ${
-              sim.payment.status === "APPROVED"
+              sim.payment?.status === "APPROVED"
                 ? "border-foreground bg-background"
                 : "border-destructive/60 bg-destructive/5"
             }`}
@@ -347,10 +358,10 @@ function AgentPage() {
             <div className="mb-3 flex items-baseline justify-between">
               <h2 className="text-lg font-semibold tracking-tight">4. 결제 게이트웨이</h2>
               <span className="text-xs uppercase tracking-widest text-muted-foreground">
-                {sim.payment.status === "APPROVED" ? "일회용 토큰 발급" : "차단됨"}
+                {sim.payment?.status === "APPROVED" ? "일회용 토큰 발급" : "차단됨"}
               </span>
             </div>
-            {sim.payment.status === "APPROVED" && pick ? (
+            {sim.payment?.status === "APPROVED" && pick ? (
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2 text-xs">
                   <Row label="상품" value={pick.title} />
@@ -359,7 +370,7 @@ function AgentPage() {
                     label="결제 금액"
                     value={`${pick.price_krw.toLocaleString("ko-KR")}원`}
                   />
-                  <Row label="계약 상한" value={`${sim.contract.amount_limit_krw.toLocaleString("ko-KR")}원`} />
+                  <Row label="계약 상한" value={`${(sim.contract?.amount_limit_krw ?? 0).toLocaleString("ko-KR")}원`} />
                   <Row label="결제 수단" value={sim.payment.method} />
                   <Row label="영수증 번호" value={sim.payment.receipt_no} />
                 </div>
@@ -367,7 +378,7 @@ function AgentPage() {
                   <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
                     일회용 결제 토큰
                   </div>
-                  <div className="mt-2 break-all font-mono text-xs">{sim.payment.token}</div>
+                  <div className="mt-2 break-all font-mono text-xs">{sim.payment?.token}</div>
                   <div className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
                     이 토큰은 방금의 계약·상품·금액에만 유효합니다. 판매자·금액이 1원이라도
                     다르면 결제 시스템이 즉시 거부합니다.
