@@ -17,7 +17,6 @@ import { Route as AuthenticatedOperatorRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedCheckoutRouteImport } from './routes/_authenticated/checkout'
 import { Route as AuthenticatedAgentRouteImport } from './routes/_authenticated/agent'
 import { Route as AuthenticatedBetaIndexRouteImport } from './routes/_authenticated/beta.index'
-import { Route as ApiPublicSeedAdminRouteImport } from './routes/api/public/seed-admin'
 import { Route as AuthenticatedBetaReportsIdRouteImport } from './routes/_authenticated/beta.reports.$id'
 
 const AuthRoute = AuthRouteImport.update({
@@ -59,11 +58,6 @@ const AuthenticatedBetaIndexRoute = AuthenticatedBetaIndexRouteImport.update({
   path: '/beta/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const ApiPublicSeedAdminRoute = ApiPublicSeedAdminRouteImport.update({
-  id: '/api/public/seed-admin',
-  path: '/api/public/seed-admin',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AuthenticatedBetaReportsIdRoute =
   AuthenticatedBetaReportsIdRouteImport.update({
     id: '/beta/reports/$id',
@@ -78,7 +72,6 @@ export interface FileRoutesByFullPath {
   '/checkout': typeof AuthenticatedCheckoutRoute
   '/operator': typeof AuthenticatedOperatorRoute
   '/purchases': typeof AuthenticatedPurchasesRoute
-  '/api/public/seed-admin': typeof ApiPublicSeedAdminRoute
   '/beta/': typeof AuthenticatedBetaIndexRoute
   '/beta/reports/$id': typeof AuthenticatedBetaReportsIdRoute
 }
@@ -89,7 +82,6 @@ export interface FileRoutesByTo {
   '/checkout': typeof AuthenticatedCheckoutRoute
   '/operator': typeof AuthenticatedOperatorRoute
   '/purchases': typeof AuthenticatedPurchasesRoute
-  '/api/public/seed-admin': typeof ApiPublicSeedAdminRoute
   '/beta': typeof AuthenticatedBetaIndexRoute
   '/beta/reports/$id': typeof AuthenticatedBetaReportsIdRoute
 }
@@ -102,7 +94,6 @@ export interface FileRoutesById {
   '/_authenticated/checkout': typeof AuthenticatedCheckoutRoute
   '/_authenticated/operator': typeof AuthenticatedOperatorRoute
   '/_authenticated/purchases': typeof AuthenticatedPurchasesRoute
-  '/api/public/seed-admin': typeof ApiPublicSeedAdminRoute
   '/_authenticated/beta/': typeof AuthenticatedBetaIndexRoute
   '/_authenticated/beta/reports/$id': typeof AuthenticatedBetaReportsIdRoute
 }
@@ -115,7 +106,6 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/operator'
     | '/purchases'
-    | '/api/public/seed-admin'
     | '/beta/'
     | '/beta/reports/$id'
   fileRoutesByTo: FileRoutesByTo
@@ -126,7 +116,6 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/operator'
     | '/purchases'
-    | '/api/public/seed-admin'
     | '/beta'
     | '/beta/reports/$id'
   id:
@@ -138,7 +127,6 @@ export interface FileRouteTypes {
     | '/_authenticated/checkout'
     | '/_authenticated/operator'
     | '/_authenticated/purchases'
-    | '/api/public/seed-admin'
     | '/_authenticated/beta/'
     | '/_authenticated/beta/reports/$id'
   fileRoutesById: FileRoutesById
@@ -147,7 +135,6 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
-  ApiPublicSeedAdminRoute: typeof ApiPublicSeedAdminRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -208,13 +195,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedBetaIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/api/public/seed-admin': {
-      id: '/api/public/seed-admin'
-      path: '/api/public/seed-admin'
-      fullPath: '/api/public/seed-admin'
-      preLoaderRoute: typeof ApiPublicSeedAdminRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/_authenticated/beta/reports/$id': {
       id: '/_authenticated/beta/reports/$id'
       path: '/beta/reports/$id'
@@ -250,7 +230,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
-  ApiPublicSeedAdminRoute: ApiPublicSeedAdminRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
