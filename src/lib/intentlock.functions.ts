@@ -423,7 +423,8 @@ export const generateGuardianReport = createServerFn({ method: "POST" })
       .single();
     if (insert.error) throw new Error(insert.error.message);
 
-    await supabase
+    const admin = await getAdmin();
+    await admin
       .from("entitlements")
       .update({ reports_remaining: ent.data.reports_remaining - 1 })
       .eq("id", ent.data.id)
