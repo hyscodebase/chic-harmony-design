@@ -9,10 +9,10 @@ export const Route = createFileRoute("/")({
         content:
           "IntentLock 은 자연어로 승인한 계약과 주문 원본을 서버에서 대조해, 계약을 벗어난 결제를 원천 차단합니다.",
       },
-      { property: "og:title", content: "IntentLock — Guarded Checkout" },
+      { property: "og:title", content: "IntentLock — 승인한 구매만 결제되는 Guarded Checkout" },
       {
         property: "og:description",
-        content: "당신이 승인한 구매만 결제됩니다.",
+        content: "IntentLock 은 자연어로 승인한 계약과 주문 원본을 서버에서 대조해, 계약을 벗어난 결제를 원천 차단합니다.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
