@@ -15,6 +15,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedPurchasesRouteImport } from './routes/_authenticated/purchases'
 import { Route as AuthenticatedOperatorRouteImport } from './routes/_authenticated/operator'
 import { Route as AuthenticatedCheckoutRouteImport } from './routes/_authenticated/checkout'
+import { Route as AuthenticatedAgentRouteImport } from './routes/_authenticated/agent'
 import { Route as AuthenticatedBetaIndexRouteImport } from './routes/_authenticated/beta.index'
 import { Route as AuthenticatedBetaReportsIdRouteImport } from './routes/_authenticated/beta.reports.$id'
 
@@ -47,6 +48,11 @@ const AuthenticatedCheckoutRoute = AuthenticatedCheckoutRouteImport.update({
   path: '/checkout',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAgentRoute = AuthenticatedAgentRouteImport.update({
+  id: '/agent',
+  path: '/agent',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedBetaIndexRoute = AuthenticatedBetaIndexRouteImport.update({
   id: '/beta/',
   path: '/beta/',
@@ -62,6 +68,7 @@ const AuthenticatedBetaReportsIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/agent': typeof AuthenticatedAgentRoute
   '/checkout': typeof AuthenticatedCheckoutRoute
   '/operator': typeof AuthenticatedOperatorRoute
   '/purchases': typeof AuthenticatedPurchasesRoute
@@ -71,6 +78,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/agent': typeof AuthenticatedAgentRoute
   '/checkout': typeof AuthenticatedCheckoutRoute
   '/operator': typeof AuthenticatedOperatorRoute
   '/purchases': typeof AuthenticatedPurchasesRoute
@@ -82,6 +90,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/_authenticated/agent': typeof AuthenticatedAgentRoute
   '/_authenticated/checkout': typeof AuthenticatedCheckoutRoute
   '/_authenticated/operator': typeof AuthenticatedOperatorRoute
   '/_authenticated/purchases': typeof AuthenticatedPurchasesRoute
@@ -93,6 +102,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/agent'
     | '/checkout'
     | '/operator'
     | '/purchases'
@@ -102,6 +112,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/agent'
     | '/checkout'
     | '/operator'
     | '/purchases'
@@ -112,6 +123,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/_authenticated/agent'
     | '/_authenticated/checkout'
     | '/_authenticated/operator'
     | '/_authenticated/purchases'
@@ -169,6 +181,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCheckoutRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/agent': {
+      id: '/_authenticated/agent'
+      path: '/agent'
+      fullPath: '/agent'
+      preLoaderRoute: typeof AuthenticatedAgentRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/beta/': {
       id: '/_authenticated/beta/'
       path: '/beta'
@@ -187,6 +206,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAgentRoute: typeof AuthenticatedAgentRoute
   AuthenticatedCheckoutRoute: typeof AuthenticatedCheckoutRoute
   AuthenticatedOperatorRoute: typeof AuthenticatedOperatorRoute
   AuthenticatedPurchasesRoute: typeof AuthenticatedPurchasesRoute
@@ -195,6 +215,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAgentRoute: AuthenticatedAgentRoute,
   AuthenticatedCheckoutRoute: AuthenticatedCheckoutRoute,
   AuthenticatedOperatorRoute: AuthenticatedOperatorRoute,
   AuthenticatedPurchasesRoute: AuthenticatedPurchasesRoute,
