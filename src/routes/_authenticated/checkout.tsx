@@ -18,19 +18,6 @@ export const Route = createFileRoute("/_authenticated/checkout")({
 });
 
 type Product = { id: string; name: string; description: string; amount_krw: number; purpose: string };
-type Order = { id: string; order_no: string; amount_krw: number; status: string };
-type Contract = {
-  id: string;
-  version: number;
-  fingerprint: string;
-  purpose: string;
-  amount_limit_krw: number;
-  normalized: unknown;
-  status: string;
-  policy_verdict: string | null;
-  policy_reason: string | null;
-  expires_at: string;
-};
 
 function CheckoutPage() {
   const navigate = useNavigate();
