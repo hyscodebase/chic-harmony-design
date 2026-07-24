@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import flowDiagram from "@/assets/intentlock-flow.png";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -117,6 +118,8 @@ function Home() {
         </div>
       </section>
 
+      <HowItWorks />
+
       <footer className="mx-auto max-w-6xl px-6 py-16 text-xs text-muted-foreground">
         <div className="flex flex-col gap-2 border-t border-border pt-6 md:flex-row md:items-center md:justify-between">
           <span>© 2026 IntentLock · Guarded Checkout · 샌드박스 데모</span>
@@ -142,5 +145,122 @@ function GridBg() {
           "radial-gradient(ellipse 80% 60% at 50% 20%, black 40%, transparent 100%)",
       }}
     />
+  );
+}
+
+function HowItWorks() {
+  return (
+    <section className="border-b border-border">
+      <div className="mx-auto max-w-6xl px-6 py-24">
+        <div className="text-xs uppercase tracking-widest text-muted-foreground">
+          어떻게 작동하는가
+        </div>
+        <h2 className="mt-4 max-w-3xl text-4xl font-semibold tracking-tight md:text-5xl">
+          AI를 통제하지 않습니다.
+          <br />
+          <span className="italic font-light text-muted-foreground">결제 승인 게이트웨이</span>를 통제합니다.
+        </h2>
+        <p className="mt-6 max-w-2xl text-base leading-relaxed text-muted-foreground">
+          AI 에이전트는 쇼핑 담당자, KB IntentLock 은 법인카드 승인 담당자입니다. AI 가 물건을
+          골라도 IntentLock 이 승인하지 않으면 돈은 빠져나가지 않습니다.
+        </p>
+
+        <figure className="mt-14 overflow-hidden rounded-lg border border-border bg-background">
+          <img
+            src={flowDiagram}
+            alt="IntentLock 결제 승인 게이트웨이 시퀀스 다이어그램"
+            className="w-full"
+            loading="lazy"
+          />
+          <figcaption className="border-t border-border px-6 py-3 text-xs text-muted-foreground">
+            사용자 · 구매 Agent · KB IntentLock · 결제 시스템 · 판매자
+          </figcaption>
+        </figure>
+
+        <div className="mt-16 grid gap-px overflow-hidden rounded-lg border border-border bg-border md:grid-cols-2">
+          {[
+            [
+              "자연어 → 결제 규칙",
+              "“5만 원 이하 꽃, 정기구독 금지” 를 서버가 Intent Contract JSON 으로 정규화하고 해시·전자서명으로 봉인합니다.",
+            ],
+            [
+              "AI 에는 카드번호 없음",
+              "Agent 는 intent_id 와 승인 요청 권한만 갖습니다. 실제 카드·계좌 정보는 KB 안전 저장소에만 존재합니다.",
+            ],
+            [
+              "코드 규칙 + 의미 검증",
+              "금액·카테고리·정기구독은 코드로, 목적 일치 여부는 Guardian AI 가 보조 심사합니다.",
+            ],
+            [
+              "일회용 결제 토큰",
+              "판매자·금액·1회·5분 만료 로 제한된 토큰만 발급. 판매자가 1원이라도 더 청구하면 결제 시스템이 거절합니다.",
+            ],
+            [
+              "프롬프트 인젝션 격리",
+              "Guardian 은 판매자 텍스트를 명령으로 읽지 않고, 서명된 계약과 실제 청구액만 비교합니다.",
+            ],
+            [
+              "3-Way 데이터 대조",
+              "Agent 신고 · 판매자 주문서 · 결제 청구액 세 가지가 일치할 때만 승인. 하나라도 다르면 즉시 차단·감사 기록.",
+            ],
+          ].map(([t, d]) => (
+            <article key={t} className="bg-background p-8">
+              <h3 className="text-xl font-semibold tracking-tight">{t}</h3>
+              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{d}</p>
+            </article>
+          ))}
+        </div>
+
+        <div className="mt-16 grid gap-6 md:grid-cols-2">
+          <pre className="overflow-x-auto rounded-lg border border-border bg-background p-6 text-xs leading-relaxed">
+{`// 사용자가 서명한 Intent Contract
+{
+  "purpose": "어머니 생신 선물",
+  "category": "flower",
+  "max_amount": 50000,
+  "quantity": 1,
+  "delivery_deadline": "2026-07-25",
+  "subscription_allowed": false,
+  "max_transactions": 1,
+  "expires_at": "2026-07-25T23:59:59+09:00"
+}
+
+INTENT_ID:  KB-20260724-001
+SIGNATURE:  8f5a1c...
+STATUS:     ACTIVE`}
+          </pre>
+          <pre className="overflow-x-auto rounded-lg border border-border bg-background p-6 text-xs leading-relaxed">
+{`// Agent 가 요청한 결제 (조건 불일치)
+{
+  "merchant": "HappyFlower",
+  "base_price": 48000,
+  "additional_items": [
+    { "name": "VIP 정기구독", "price": 29900 }
+  ],
+  "total_amount": 77900,
+  "subscription": true
+}
+
+RESULT:  BLOCKED
+REASON:  예산 초과 · 정기결제 미승인
+         · 추가 상품 미승인`}
+          </pre>
+        </div>
+
+        <div className="mt-16 rounded-lg border border-border bg-foreground p-8 text-background md:p-10">
+          <div className="text-xs uppercase tracking-widest opacity-60">한 문장 정리</div>
+          <p className="mt-4 text-2xl font-semibold leading-snug tracking-tight md:text-3xl">
+            AI 의 판단을 막지 않습니다. AI 가 돈을 쓰기 직전, 사용자가 서명한 원래 의도와 실제
+            결제 요청을 대조해 <span className="italic font-light opacity-80">일치할 때만</span>{" "}
+            제한된 일회용 결제 권한을 발급합니다.
+          </p>
+          <p className="mt-6 max-w-2xl text-sm leading-relaxed opacity-70">
+            IntentLock 은 세상의 모든 AI 결제를 감시하지 않습니다. KB IntentLock 결제 API 또는
+            전용 가상카드를 사용하도록 설계된 AI Agent 의 결제만 통제합니다 — “AI Agent 전용 결제
+            인프라” 입니다.
+          </p>
+        </div>
+      </div>
+    </section>
   );
 }
