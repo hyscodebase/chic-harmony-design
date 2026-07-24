@@ -10,6 +10,12 @@ import {
   type NormalizedContract,
 } from "./intentlock.server";
 
+// Load service-role client only inside handlers (server-only module).
+async function getAdmin() {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  return supabaseAdmin;
+}
+
 // ---------- 상품 조회 ----------
 export const getBetaPassProduct = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
