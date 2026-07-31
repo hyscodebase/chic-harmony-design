@@ -10,12 +10,7 @@ export type KbPaymentStatus =
   | "BLOCKED"
   | "FAILED";
 
-export type IntentTokenStatus =
-  | "ISSUED"
-  | "VERIFIED"
-  | "EXCHANGED"
-  | "AUTHORIZED"
-  | "CONSUMED";
+export type IntentTokenStatus = "ISSUED" | "VERIFIED" | "EXCHANGED" | "AUTHORIZED" | "CONSUMED";
 
 export type VirtualCardStatus = "PENDING" | "ACTIVE" | "USED" | "DESTROYED";
 
@@ -48,12 +43,12 @@ export interface IssueVirtualCardInput {
 
 export interface VirtualCardCredential {
   cardId: string;
-  displayName: string;      // "KB Intent Card"
-  maskedNumber: string;     // "5410 90•• •••• 4821"
+  displayName: string; // "KB Intent Card"
+  maskedNumber: string; // "5410 90•• •••• 4821"
   limitKrw: number;
   allowedMerchants: string[];
   usesAllowed: number;
-  expiresAt: string;        // ISO, ~5m
+  expiresAt: string; // ISO, ~5m
   linkedFundingSource: string; // "KB국민카드 •••• 5678"
   status: VirtualCardStatus;
 }

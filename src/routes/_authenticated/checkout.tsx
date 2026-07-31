@@ -1,10 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
-import {
-  getBetaPassProduct,
-  testInstantPurchase,
-} from "@/lib/intentlock.functions";
+import { getBetaPassProduct, testInstantPurchase } from "@/lib/intentlock.functions";
 
 export const Route = createFileRoute("/_authenticated/checkout")({
   head: () => ({
@@ -17,7 +14,13 @@ export const Route = createFileRoute("/_authenticated/checkout")({
   component: CheckoutPage,
 });
 
-type Product = { id: string; name: string; description: string; amount_krw: number; purpose: string };
+type Product = {
+  id: string;
+  name: string;
+  description: string;
+  amount_krw: number;
+  purpose: string;
+};
 
 function CheckoutPage() {
   const navigate = useNavigate();
@@ -30,7 +33,9 @@ function CheckoutPage() {
   const idempotencyKey = useMemo(() => crypto.randomUUID(), []);
 
   useEffect(() => {
-    fetchProduct().then((p) => setProduct(p as Product)).catch((e) => setErr(String(e)));
+    fetchProduct()
+      .then((p) => setProduct(p as Product))
+      .catch((e) => setErr(String(e)));
   }, [fetchProduct]);
 
   async function handleInstantPurchase() {
@@ -47,7 +52,11 @@ function CheckoutPage() {
   }
 
   if (!product) {
-    return <main className="mx-auto max-w-4xl px-6 py-16 text-sm text-muted-foreground">불러오는 중…</main>;
+    return (
+      <main className="mx-auto max-w-4xl px-6 py-16 text-sm text-muted-foreground">
+        불러오는 중…
+      </main>
+    );
   }
 
   return (

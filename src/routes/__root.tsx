@@ -10,7 +10,6 @@ import {
 import { useEffect, useState, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
-import { reportLovableError } from "../lib/lovable-error-reporting";
 import { supabase } from "@/integrations/supabase/client";
 
 function NotFoundComponent() {
@@ -38,9 +37,6 @@ function NotFoundComponent() {
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
-  useEffect(() => {
-    reportLovableError(error, { boundary: "tanstack_root_error_component" });
-  }, [error]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -79,17 +75,26 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "IntentLock — 승인한 구매만 결제되는 Guarded Checkout" },
-      { name: "description", content: "IntentLock 은 자연어로 승인한 계약과 주문 원본을 서버에서 대조해, 계약을 벗어난 결제를 원천 차단합니다." },
-      { name: "author", content: "Lovable" },
+      {
+        name: "description",
+        content:
+          "IntentLock 은 자연어로 승인한 계약과 주문 원본을 서버에서 대조해, 계약을 벗어난 결제를 원천 차단합니다.",
+      },
+      { name: "author", content: "IntentLock Team" },
       { property: "og:title", content: "IntentLock — 승인한 구매만 결제되는 Guarded Checkout" },
-      { property: "og:description", content: "IntentLock 은 자연어로 승인한 계약과 주문 원본을 서버에서 대조해, 계약을 벗어난 결제를 원천 차단합니다." },
+      {
+        property: "og:description",
+        content:
+          "IntentLock 은 자연어로 승인한 계약과 주문 원본을 서버에서 대조해, 계약을 벗어난 결제를 원천 차단합니다.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
       { name: "twitter:title", content: "IntentLock — 승인한 구매만 결제되는 Guarded Checkout" },
-      { name: "twitter:description", content: "IntentLock 은 자연어로 승인한 계약과 주문 원본을 서버에서 대조해, 계약을 벗어난 결제를 원천 차단합니다." },
-      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/uM5fw1J2CJUESR5WTcPAzmJPMEN2/social-images/social-1784880888758-6e4bd871-0f85-4ee2-b456-5f61b047a361.webp" },
-      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/uM5fw1J2CJUESR5WTcPAzmJPMEN2/social-images/social-1784880888758-6e4bd871-0f85-4ee2-b456-5f61b047a361.webp" },
+      {
+        name: "twitter:description",
+        content:
+          "IntentLock 은 자연어로 승인한 계약과 주문 원본을 서버에서 대조해, 계약을 벗어난 결제를 원천 차단합니다.",
+      },
     ],
     links: [
       {
@@ -106,7 +111,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="ko">
       <head>
         <HeadContent />
       </head>

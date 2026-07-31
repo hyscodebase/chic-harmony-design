@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { Database } from "@/integrations/supabase/types";
 import { z } from "zod";
 import {
   sha256Hex,
@@ -9,11 +10,21 @@ import {
   guardianJudge,
   type NormalizedContract,
 } from "./intentlock.server";
+import { callAIJson } from "./ai-provider.server";
 
 // Load service-role client only inside handlers (server-only module).
 async function getAdmin() {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   return supabaseAdmin;
+}
+
+type PaymentEventInsert = Database["public"]["Tables"]["payment_events"]["Insert"];
+
+async function appendPaymentEvents(eventOrEvents: PaymentEventInsert | PaymentEventInsert[]) {
+  const admin = await getAdmin();
+  const events = Array.isArray(eventOrEvents) ? eventOrEvents : [eventOrEvents];
+  const { error } = await admin.from("payment_events").insert(events);
+  if (error) throw new Error(`감사 로그 저장 실패: ${error.message}`);
 }
 
 // ---------- 상품 조회 ----------
@@ -33,9 +44,7 @@ export const getBetaPassProduct = createServerFn({ method: "GET" })
 // ---------- 주문 생성 ----------
 export const createOrder = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
-    z.object({ idempotency_key: z.string().uuid() }).parse(input),
-  )
+  .validator((input: unknown) => z.object({ idempotency_key: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 
@@ -54,8 +63,7 @@ export const createOrder = createServerFn({ method: "POST" })
       .eq("code", "INTENTLOCK_BETA_PASS_V1")
       .eq("is_active", true)
       .maybeSingle();
-    if (product.error || !product.data)
-      throw new Error("판매 중인 Beta Pass 를 찾을 수 없습니다.");
+    if (product.error || !product.data) throw new Error("판매 중인 Beta Pass 를 찾을 수 없습니다.");
 
     const orderNo = newOrderNo();
     const admin = await getAdmin();
@@ -73,7 +81,7 @@ export const createOrder = createServerFn({ method: "POST" })
       .single();
     if (insert.error) throw new Error(insert.error.message);
 
-    await supabase.from("payment_events").insert({
+    await appendPaymentEvents({
       order_id: insert.data.id,
       event_type: "ORDER_CREATED",
       handler: "createOrder",
@@ -85,7 +93,7 @@ export const createOrder = createServerFn({ method: "POST" })
 // ---------- 계약 생성 ----------
 export const createContract = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
+  .validator((input: unknown) =>
     z
       .object({
         order_id: z.string().uuid(),
@@ -102,8 +110,7 @@ export const createContract = createServerFn({ method: "POST" })
       .eq("user_id", userId)
       .maybeSingle();
     if (order.error || !order.data) throw new Error("주문을 찾을 수 없습니다.");
-    if (order.data.status !== "PENDING")
-      throw new Error("계약을 수정할 수 있는 상태가 아닙니다.");
+    if (order.data.status !== "PENDING") throw new Error("계약을 수정할 수 있는 상태가 아닙니다.");
 
     const admin = await getAdmin();
     // 이전 버전 SUPERSEDE
@@ -118,10 +125,7 @@ export const createContract = createServerFn({ method: "POST" })
       purpose: string;
       amount_krw: number;
     };
-    const normalized: NormalizedContract = await normalizeIntent(
-      data.natural_language,
-      product,
-    );
+    const normalized: NormalizedContract = await normalizeIntent(data.natural_language, product);
     const policy = judgeContractPolicy(normalized, product);
 
     // 다음 버전 계산
@@ -159,7 +163,7 @@ export const createContract = createServerFn({ method: "POST" })
       .single();
     if (insert.error) throw new Error(insert.error.message);
 
-    await supabase.from("payment_events").insert({
+    await appendPaymentEvents({
       order_id: order.data.id,
       event_type: "CONTRACT_CREATED",
       handler: "createContract",
@@ -171,7 +175,7 @@ export const createContract = createServerFn({ method: "POST" })
 // ---------- 계약 승인 ----------
 export const approveContract = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
+  .validator((input: unknown) =>
     z.object({ contract_id: z.string().uuid(), fingerprint: z.string() }).parse(input),
   )
   .handler(async ({ data, context }) => {
@@ -202,7 +206,7 @@ export const approveContract = createServerFn({ method: "POST" })
       .single();
     if (upd.error) throw new Error(upd.error.message);
 
-    await supabase.from("payment_events").insert({
+    await appendPaymentEvents({
       order_id: contract.data.order_id,
       event_type: "CONTRACT_APPROVED",
       handler: "approveContract",
@@ -214,9 +218,7 @@ export const approveContract = createServerFn({ method: "POST" })
 // ---------- Guardian 결제 판정 ----------
 export const guardCheckout = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
-    z.object({ order_id: z.string().uuid() }).parse(input),
-  )
+  .validator((input: unknown) => z.object({ order_id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const order = await supabase
@@ -246,7 +248,7 @@ export const guardCheckout = createServerFn({ method: "POST" })
         reason: `계약 상한(${approved.amount_limit_krw}원) < 주문 금액(${order.data.amount_krw}원).`,
       };
     }
-    await supabase.from("payment_events").insert({
+    await appendPaymentEvents({
       order_id: order.data.id,
       event_type: "GUARDIAN_ALLOWED",
       handler: "guardCheckout",
@@ -258,7 +260,7 @@ export const guardCheckout = createServerFn({ method: "POST" })
 // ---------- 모의 결제 승인 ----------
 export const mockConfirmPayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
+  .validator((input: unknown) =>
     z
       .object({ order_id: z.string().uuid(), method: z.enum(["카드", "계좌이체", "간편결제"]) })
       .parse(input),
@@ -296,7 +298,9 @@ export const mockConfirmPayment = createServerFn({ method: "POST" })
     if (contract.data.amount_limit_krw < order.data.amount_krw)
       throw new Error("Guardian BLOCK: 계약 상한을 초과했습니다.");
 
-    const paymentKey = `MOCK-${sha256Hex(order.data.id + Date.now()).slice(0, 24).toUpperCase()}`;
+    const paymentKey = `MOCK-${sha256Hex(order.data.id + Date.now())
+      .slice(0, 24)
+      .toUpperCase()}`;
     const receiptNo = `RCPT-${Date.now().toString(36).toUpperCase()}`;
     const nowIso = new Date().toISOString();
 
@@ -323,7 +327,10 @@ export const mockConfirmPayment = createServerFn({ method: "POST" })
     if (payment.error) throw new Error(payment.error.message);
 
     // 주문/계약 전이
-    await admin.from("orders").update({ status: "PAID", updated_at: nowIso }).eq("id", order.data.id);
+    await admin
+      .from("orders")
+      .update({ status: "PAID", updated_at: nowIso })
+      .eq("id", order.data.id);
     await admin.from("intent_contracts").update({ status: "CONSUMED" }).eq("id", contract.data.id);
 
     // 이용권 지급
@@ -343,12 +350,16 @@ export const mockConfirmPayment = createServerFn({ method: "POST" })
     );
     await admin.from("orders").update({ status: "FULFILLED" }).eq("id", order.data.id);
 
-    await supabase.from("payment_events").insert([
+    await appendPaymentEvents([
       {
         order_id: order.data.id,
         event_type: "PAYMENT_APPROVED",
         handler: "mockConfirmPayment",
-        payload: { payment_key: paymentKey, method: data.method, amount_krw: order.data.amount_krw },
+        payload: {
+          payment_key: paymentKey,
+          method: data.method,
+          amount_krw: order.data.amount_krw,
+        },
       },
       {
         order_id: order.data.id,
@@ -364,7 +375,7 @@ export const mockConfirmPayment = createServerFn({ method: "POST" })
 // ---------- Guardian 리포트 생성 ----------
 export const generateGuardianReport = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
+  .validator((input: unknown) =>
     z
       .object({
         entitlement_id: z.string().uuid(),
@@ -393,21 +404,36 @@ export const generateGuardianReport = createServerFn({ method: "POST" })
       normalized: NormalizedContract;
     }>;
     const consumed = contracts.find((c) => c.status === "CONSUMED");
-    const normalized: NormalizedContract =
-      consumed?.normalized ?? {
-        purpose: "IntentLock Beta Pass 이용",
-        amount_limit_krw: 1000,
-        count: 1,
-        currency: "KRW",
-        notes: "",
-      };
+    const normalized: NormalizedContract = consumed?.normalized ?? {
+      purpose: "IntentLock Beta Pass 이용",
+      amount_limit_krw: 1000,
+      count: 1,
+      currency: "KRW",
+      notes: "",
+    };
 
     const judgement = await guardianJudge(
       `제안 목적: ${data.proposed_purpose}\n제안 금액: ${data.proposed_amount_krw}원\n시나리오: ${data.scenario}`,
       normalized,
     );
 
-    const insert = await supabase
+    const admin = await getAdmin();
+    const reservedRemaining = ent.data.reports_remaining - 1;
+    const reservation = await admin
+      .from("entitlements")
+      .update({ reports_remaining: reservedRemaining })
+      .eq("id", ent.data.id)
+      .eq("status", "ACTIVE")
+      .eq("reports_remaining", ent.data.reports_remaining)
+      .gt("expires_at", new Date().toISOString())
+      .select("id")
+      .maybeSingle();
+    if (reservation.error) throw new Error(reservation.error.message);
+    if (!reservation.data) {
+      throw new Error("리포트 잔여 수량이 변경되었습니다. 다시 시도해 주세요.");
+    }
+
+    const insert = await admin
       .from("guardian_reports")
       .insert({
         user_id: userId,
@@ -421,14 +447,14 @@ export const generateGuardianReport = createServerFn({ method: "POST" })
       })
       .select("*")
       .single();
-    if (insert.error) throw new Error(insert.error.message);
-
-    const admin = await getAdmin();
-    await admin
-      .from("entitlements")
-      .update({ reports_remaining: ent.data.reports_remaining - 1 })
-      .eq("id", ent.data.id)
-      .gt("reports_remaining", 0);
+    if (insert.error) {
+      await admin
+        .from("entitlements")
+        .update({ reports_remaining: ent.data.reports_remaining })
+        .eq("id", ent.data.id)
+        .eq("reports_remaining", reservedRemaining);
+      throw new Error(insert.error.message);
+    }
 
     return { report: insert.data };
   });
@@ -436,7 +462,7 @@ export const generateGuardianReport = createServerFn({ method: "POST" })
 // ---------- 운영자: 전액 취소 ----------
 export const operatorCancel = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
+  .validator((input: unknown) =>
     z
       .object({
         order_id: z.string().uuid(),
@@ -452,6 +478,7 @@ export const operatorCancel = createServerFn({ method: "POST" })
       _role: "operator",
     });
     if (!isOperator) throw new Error("운영자 권한이 없습니다.");
+    const admin = await getAdmin();
 
     const existing = await supabase
       .from("cancellation_requests")
@@ -461,7 +488,7 @@ export const operatorCancel = createServerFn({ method: "POST" })
     if (existing.data) return { cancellation: existing.data, reused: true };
 
     const nowIso = new Date().toISOString();
-    const insert = await supabase
+    const insert = await admin
       .from("cancellation_requests")
       .insert({
         order_id: data.order_id,
@@ -474,18 +501,20 @@ export const operatorCancel = createServerFn({ method: "POST" })
       .single();
     if (insert.error) throw new Error(insert.error.message);
 
-    const admin = await getAdmin();
     await admin
       .from("payments")
       .update({ status: "CANCELED", canceled_at: nowIso })
       .eq("order_id", data.order_id);
-    await admin.from("orders").update({ status: "CANCELED", updated_at: nowIso }).eq("id", data.order_id);
+    await admin
+      .from("orders")
+      .update({ status: "CANCELED", updated_at: nowIso })
+      .eq("id", data.order_id);
     await admin
       .from("entitlements")
       .update({ status: "REVOKED", revoked_at: nowIso })
       .eq("order_id", data.order_id);
 
-    await supabase.from("payment_events").insert({
+    await appendPaymentEvents({
       order_id: data.order_id,
       event_type: "PAYMENT_CANCELED",
       handler: "operatorCancel",
@@ -511,9 +540,7 @@ export const listMyOrders = createServerFn({ method: "GET" })
 // ---------- 테스트 서버: 즉시 구매 (0원) ----------
 export const testInstantPurchase = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
-    z.object({ idempotency_key: z.string().uuid() }).parse(input),
-  )
+  .validator((input: unknown) => z.object({ idempotency_key: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 
@@ -549,8 +576,7 @@ export const testInstantPurchase = createServerFn({ method: "POST" })
       .eq("code", "INTENTLOCK_BETA_PASS_V1")
       .eq("is_active", true)
       .maybeSingle();
-    if (product.error || !product.data)
-      throw new Error("판매 중인 Beta Pass 를 찾을 수 없습니다.");
+    if (product.error || !product.data) throw new Error("판매 중인 Beta Pass 를 찾을 수 없습니다.");
 
     const orderNo = newOrderNo();
     const nowIso = new Date().toISOString();
@@ -570,9 +596,7 @@ export const testInstantPurchase = createServerFn({ method: "POST" })
       .single();
     if (insert.error) throw new Error(insert.error.message);
 
-    const expiresAt = new Date(
-      Date.now() + product.data.access_days * 86400000,
-    ).toISOString();
+    const expiresAt = new Date(Date.now() + product.data.access_days * 86400000).toISOString();
     await admin.from("entitlements").upsert(
       {
         user_id: userId,
@@ -586,7 +610,7 @@ export const testInstantPurchase = createServerFn({ method: "POST" })
       { onConflict: "order_id" },
     );
 
-    await supabase.from("payment_events").insert({
+    await appendPaymentEvents({
       order_id: insert.data.id,
       event_type: "TEST_INSTANT_PURCHASE",
       handler: "testInstantPurchase",
@@ -597,12 +621,14 @@ export const testInstantPurchase = createServerFn({ method: "POST" })
 
 export const getOrderDetail = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => z.object({ order_id: z.string().uuid() }).parse(input))
+  .validator((input: unknown) => z.object({ order_id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const order = await supabase
       .from("orders")
-      .select("*, products(*), intent_contracts(*), payments(*), entitlements(*), payment_events(*)")
+      .select(
+        "*, products(*), intent_contracts(*), payments(*), entitlements(*), payment_events(*)",
+      )
       .eq("id", data.order_id)
       .eq("user_id", userId)
       .maybeSingle();
@@ -642,7 +668,7 @@ export const listMyReports = createServerFn({ method: "GET" })
 
 export const getReport = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .validator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const r = await supabase
@@ -722,7 +748,7 @@ type AgentSim = {
 
 export const simulateAgentPurchase = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
+  .validator((input: unknown) =>
     z
       .object({
         request: z.string().min(5).max(400),
@@ -733,9 +759,6 @@ export const simulateAgentPurchase = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data }) => {
-    const key = process.env.LOVABLE_API_KEY;
-    if (!key) throw new Error("LOVABLE_API_KEY 가 없습니다.");
-
     const banned = data.banned_sellers
       .split(",")
       .map((s) => s.trim())
@@ -773,26 +796,11 @@ export const simulateAgentPurchase = createServerFn({ method: "POST" })
 예산 상한: ${data.amount_limit_krw}원
 금지 판매자: ${banned.length ? banned.join(", ") : "(없음)"}`;
 
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${key}`,
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: system },
-          { role: "user", content: user },
-        ],
-        response_format: { type: "json_object" },
-      }),
-    });
-    if (res.status === 429) throw new Error("AI 사용량 한도에 도달했습니다.");
-    if (res.status === 402) throw new Error("AI 크레딧이 소진되었습니다.");
-    if (!res.ok) throw new Error(`AI 게이트웨이 오류 (${res.status})`);
-    const json = (await res.json()) as { choices: { message: { content: string } }[] };
-    const parsed = JSON.parse(json.choices?.[0]?.message?.content ?? "{}") as Partial<AgentSim>;
+    const raw = await callAIJson([
+      { role: "system", content: system },
+      { role: "user", content: user },
+    ]);
+    const parsed = JSON.parse(raw) as Partial<AgentSim>;
 
     const contract = {
       purpose: String(parsed.contract?.purpose ?? data.request).slice(0, 200),
@@ -847,7 +855,9 @@ export const simulateAgentPurchase = createServerFn({ method: "POST" })
       checks.push({
         name: "판매자 화이트리스트",
         pass: sellerOk,
-        detail: sellerOk ? `${pick.seller} 은(는) 금지 목록에 없음` : `${pick.seller} 은(는) 금지 판매자`,
+        detail: sellerOk
+          ? `${pick.seller} 은(는) 금지 목록에 없음`
+          : `${pick.seller} 은(는) 금지 판매자`,
       });
       const keywordOk =
         !contract.must_include ||
@@ -870,7 +880,11 @@ export const simulateAgentPurchase = createServerFn({ method: "POST" })
 
       if (checks.some((c) => !c.pass)) {
         verdict = "BLOCK";
-        reason = checks.filter((c) => !c.pass).map((c) => c.name).join(", ") + " 위반";
+        reason =
+          checks
+            .filter((c) => !c.pass)
+            .map((c) => c.name)
+            .join(", ") + " 위반";
       }
     }
 
@@ -931,7 +945,9 @@ export const simulateAgentPurchase = createServerFn({ method: "POST" })
 
     const finalPick = candidates[recIndex];
     const paymentApproved = verdict === "ALLOW" && !!finalPick;
-    const token = `IL-TX-${sha256Hex(JSON.stringify({ contract, finalPick, t: Date.now() })).slice(0, 20).toUpperCase()}`;
+    const token = `IL-TX-${sha256Hex(JSON.stringify({ contract, finalPick, t: Date.now() }))
+      .slice(0, 20)
+      .toUpperCase()}`;
 
     return {
       contract,

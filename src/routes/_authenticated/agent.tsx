@@ -41,7 +41,9 @@ export const Route = createFileRoute("/_authenticated/agent")({
       에이전트 오류: {String((error as Error)?.message ?? error)}
     </div>
   ),
-  notFoundComponent: () => <div className="mx-auto max-w-2xl px-6 py-16">페이지를 찾을 수 없습니다.</div>,
+  notFoundComponent: () => (
+    <div className="mx-auto max-w-2xl px-6 py-16">페이지를 찾을 수 없습니다.</div>
+  ),
 });
 
 type Sim = Awaited<ReturnType<typeof simulateAgentPurchase>>;
@@ -57,7 +59,9 @@ type StageId = (typeof STAGES)[number]["id"];
 
 function AgentPage() {
   const run = useServerFn(simulateAgentPurchase);
-  const [request, setRequest] = useState("무선 노이즈캔슬링 이어폰 갖고 싶어. 배터리 오래가고 리뷰 좋은거로.");
+  const [request, setRequest] = useState(
+    "무선 노이즈캔슬링 이어폰 갖고 싶어. 배터리 오래가고 리뷰 좋은거로.",
+  );
   const [limit, setLimit] = useState(150000);
   const [banned, setBanned] = useState("");
   const [running, setRunning] = useState(false);
@@ -68,9 +72,7 @@ function AgentPage() {
 
   useEffect(() => {
     if (!running || !sim) return;
-    setDoneStages([]);
     let i = 0;
-    setActiveStage(STAGES[0]?.id ?? null);
     const timer = setInterval(() => {
       const current = STAGES[i];
       if (!current) {
@@ -136,7 +138,7 @@ function AgentPage() {
 
   const pick =
     sim && sim.candidates && sim.recommendation
-      ? sim.candidates[sim.recommendation.index] ?? null
+      ? (sim.candidates[sim.recommendation.index] ?? null)
       : null;
 
   return (
@@ -149,9 +151,9 @@ function AgentPage() {
           AI 에이전트가 사고, IntentLock 이 선을 지킵니다
         </h1>
         <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-          자연어로 원하는 물건을 말하면 AI 가 네이버쇼핑·쿠팡·아마존에서 후보를 찾아
-          최적안을 추천합니다. IntentLock 은 그 결과가 사용자가 승인한 계약(예산 상한,
-          금지 판매자, 필수 키워드)을 벗어나면 결제 자체를 차단합니다.
+          자연어로 원하는 물건을 말하면 AI 가 네이버쇼핑·쿠팡·아마존에서 후보를 찾아 최적안을
+          추천합니다. IntentLock 은 그 결과가 사용자가 승인한 계약(예산 상한, 금지 판매자, 필수
+          키워드)을 벗어나면 결제 자체를 차단합니다.
         </p>
       </header>
 
@@ -282,7 +284,7 @@ function AgentPage() {
               </span>
             </div>
             <pre className="overflow-x-auto rounded-lg bg-background p-4 text-xs leading-relaxed">
-{JSON.stringify(sim.contract, null, 2)}
+              {JSON.stringify(sim.contract, null, 2)}
             </pre>
           </section>
 
@@ -412,11 +414,11 @@ function AgentPage() {
                 <div className="space-y-2 text-xs">
                   <Row label="상품" value={pick.title} />
                   <Row label="판매자" value={`${pick.marketplace} · ${pick.seller}`} />
+                  <Row label="결제 금액" value={`${pick.price_krw.toLocaleString("ko-KR")}원`} />
                   <Row
-                    label="결제 금액"
-                    value={`${pick.price_krw.toLocaleString("ko-KR")}원`}
+                    label="계약 상한"
+                    value={`${(sim.contract?.amount_limit_krw ?? 0).toLocaleString("ko-KR")}원`}
                   />
-                  <Row label="계약 상한" value={`${(sim.contract?.amount_limit_krw ?? 0).toLocaleString("ko-KR")}원`} />
                   <Row label="결제 수단" value={sim.payment.method} />
                   <Row label="영수증 번호" value={sim.payment.receipt_no} />
                 </div>
@@ -426,8 +428,8 @@ function AgentPage() {
                   </div>
                   <div className="mt-2 break-all font-mono text-xs">{sim.payment?.token}</div>
                   <div className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
-                    이 토큰은 방금의 계약·상품·금액에만 유효합니다. 판매자·금액이 1원이라도
-                    다르면 결제 시스템이 즉시 거부합니다.
+                    이 토큰은 방금의 계약·상품·금액에만 유효합니다. 판매자·금액이 1원이라도 다르면
+                    결제 시스템이 즉시 거부합니다.
                   </div>
                 </div>
               </div>
@@ -489,6 +491,7 @@ function KbNetworkPaymentSection({
   const [netToken, setNetToken] = useState<NetworkPaymentToken | null>(null);
   const [auth, setAuth] = useState<PaymentAuthorization | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [expiresAt] = useState(() => new Date(Date.now() + 5 * 60 * 1000).toISOString());
 
   const binding = useMemo(
     () => ({
@@ -499,9 +502,9 @@ function KbNetworkPaymentSection({
       productTitle,
       currency: "KRW" as const,
       amount,
-      expiresAt: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+      expiresAt,
     }),
-    [intentToken, merchant, productTitle, amount],
+    [intentToken, merchant, productTitle, amount, expiresAt],
   );
 
   const [idemBase] = useState(() =>
@@ -510,8 +513,7 @@ function KbNetworkPaymentSection({
       : `idem-${Date.now()}-${Math.random().toString(16).slice(2)}`,
   );
 
-  const canRun =
-    guardianVerdict === "ALLOW" && intentStatus === "ISSUED" && status === "IDLE";
+  const canRun = guardianVerdict === "ALLOW" && intentStatus === "ISSUED" && status === "IDLE";
 
   const buttonLabel =
     status === "AUTHORIZED"
@@ -591,7 +593,8 @@ function KbNetworkPaymentSection({
     },
     {
       title: "KB 결제 권한 발급",
-      detail: "등록 결제수단을 기반으로 가맹점·금액·유효시간이 제한된 일회용 가상카드를 발급합니다.",
+      detail:
+        "등록 결제수단을 기반으로 가맹점·금액·유효시간이 제한된 일회용 가상카드를 발급합니다.",
       state:
         cardStatus === "PENDING" && status !== "ISSUING_VIRTUAL_CARD"
           ? "wait"
@@ -618,11 +621,7 @@ function KbNetworkPaymentSection({
       title: "가맹점 결제 승인",
       detail: "가상카드와 Network Payment Token 을 이용해 승인된 가맹점에 결제를 요청합니다.",
       state:
-        status === "AUTHORIZING_PAYMENT"
-          ? "active"
-          : status === "AUTHORIZED"
-            ? "done"
-            : "wait",
+        status === "AUTHORIZING_PAYMENT" ? "active" : status === "AUTHORIZED" ? "done" : "wait",
       stateLabel: status === "AUTHORIZED" ? "AUTHORIZED" : "WAITING",
     },
   ];
@@ -648,8 +647,7 @@ function KbNetworkPaymentSection({
             className="mt-4 rounded-xl border p-4"
             style={{
               borderColor: cardStatus === "DESTROYED" ? undefined : "#F5C518",
-              background:
-                cardStatus === "DESTROYED" ? "hsl(var(--muted))" : "#FFFBEA",
+              background: cardStatus === "DESTROYED" ? "hsl(var(--muted))" : "#FFFBEA",
             }}
           >
             <div className="flex items-center justify-between">
@@ -703,13 +701,11 @@ function KbNetworkPaymentSection({
           </div>
 
           <ul className="mt-4 grid grid-cols-2 gap-2 text-xs">
-            {[
-              "가맹점 제한",
-              "금액 제한",
-              "1회 사용",
-              "5분 후 만료",
-            ].map((c) => (
-              <li key={c} className="flex items-center gap-2 rounded-lg border border-border/60 px-3 py-2">
+            {["가맹점 제한", "금액 제한", "1회 사용", "5분 후 만료"].map((c) => (
+              <li
+                key={c}
+                className="flex items-center gap-2 rounded-lg border border-border/60 px-3 py-2"
+              >
                 <span className="grid h-4 w-4 place-items-center rounded-full bg-foreground text-[10px] text-background">
                   ✓
                 </span>
@@ -754,7 +750,10 @@ function KbNetworkPaymentSection({
                   </div>
                   <span
                     className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                      s.stateLabel === "AUTHORIZED" || s.stateLabel === "TOKENIZED" || s.stateLabel === "VERIFIED" || s.stateLabel === "ISSUED"
+                      s.stateLabel === "AUTHORIZED" ||
+                      s.stateLabel === "TOKENIZED" ||
+                      s.stateLabel === "VERIFIED" ||
+                      s.stateLabel === "ISSUED"
                         ? "bg-foreground text-background"
                         : "border border-border text-muted-foreground"
                     }`}
@@ -763,10 +762,14 @@ function KbNetworkPaymentSection({
                   </span>
                 </div>
                 {s.value && (
-                  <div className="mt-2 break-all font-mono text-[11px] text-muted-foreground">{s.value}</div>
+                  <div className="mt-2 break-all font-mono text-[11px] text-muted-foreground">
+                    {s.value}
+                  </div>
                 )}
                 {s.detail && (
-                  <div className="mt-1 text-[11px] leading-relaxed text-muted-foreground">{s.detail}</div>
+                  <div className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+                    {s.detail}
+                  </div>
                 )}
               </li>
             ))}
@@ -806,9 +809,7 @@ function KbNetworkPaymentSection({
           style={{ borderColor: "#16a34a", background: "#f0fdf4" }}
         >
           <div className="flex items-baseline justify-between">
-            <div className="text-sm font-semibold text-green-900">
-              KB 네트워크 결제 승인 완료
-            </div>
+            <div className="text-sm font-semibold text-green-900">KB 네트워크 결제 승인 완료</div>
             <span className="rounded-full bg-green-600 px-2 py-0.5 text-[10px] font-medium text-white">
               AUTHORIZED
             </span>
@@ -832,8 +833,8 @@ function KbNetworkPaymentSection({
 
       <div className="mt-6 text-[11px] leading-relaxed text-muted-foreground">
         본 화면은 KB의 일회용 가상카드 및 네트워크 토큰 발급 구조를 제안하기 위한 샌드박스
-        시뮬레이션입니다. 실제 운영 시에는 KB 카드·은행 시스템 및 카드 네트워크와의 연동과
-        별도 보안 심사가 필요합니다.
+        시뮬레이션입니다. 실제 운영 시에는 KB 카드·은행 시스템 및 카드 네트워크와의 연동과 별도 보안
+        심사가 필요합니다.
       </div>
     </section>
   );

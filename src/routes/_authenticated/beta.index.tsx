@@ -2,7 +2,11 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { getMyEntitlement, listMyReports, generateGuardianReport } from "@/lib/intentlock.functions";
+import {
+  getMyEntitlement,
+  listMyReports,
+  generateGuardianReport,
+} from "@/lib/intentlock.functions";
 
 export const Route = createFileRoute("/_authenticated/beta/")({
   head: () => ({
@@ -75,9 +79,7 @@ function BetaPage() {
   return (
     <main className="mx-auto max-w-5xl px-6 py-12">
       <div className="text-xs uppercase tracking-widest text-muted-foreground">Beta Pass</div>
-      <h1 className="mt-3 text-3xl font-semibold tracking-tight md:text-4xl">
-        Guardian 리포트
-      </h1>
+      <h1 className="mt-3 text-3xl font-semibold tracking-tight md:text-4xl">Guardian 리포트</h1>
 
       {ent.isLoading ? (
         <p className="mt-6 text-sm text-muted-foreground">불러오는 중…</p>
@@ -106,7 +108,9 @@ function BetaPage() {
         >
           <h2 className="text-lg font-semibold tracking-tight">새 리포트 요청</h2>
           <label className="block">
-            <span className="text-xs uppercase tracking-widest text-muted-foreground">시나리오</span>
+            <span className="text-xs uppercase tracking-widest text-muted-foreground">
+              시나리오
+            </span>
             <textarea
               value={scenario}
               onChange={(ev) => setScenario(ev.target.value)}
@@ -116,7 +120,9 @@ function BetaPage() {
           </label>
           <div className="grid gap-4 md:grid-cols-2">
             <label className="block">
-              <span className="text-xs uppercase tracking-widest text-muted-foreground">제안 목적</span>
+              <span className="text-xs uppercase tracking-widest text-muted-foreground">
+                제안 목적
+              </span>
               <input
                 value={purpose}
                 onChange={(ev) => setPurpose(ev.target.value)}
@@ -124,7 +130,9 @@ function BetaPage() {
               />
             </label>
             <label className="block">
-              <span className="text-xs uppercase tracking-widest text-muted-foreground">제안 금액 (원)</span>
+              <span className="text-xs uppercase tracking-widest text-muted-foreground">
+                제안 금액 (원)
+              </span>
               <input
                 type="number"
                 value={amount}
@@ -159,7 +167,8 @@ function BetaPage() {
                 <div>
                   <div className="text-sm font-medium">{r.proposed_purpose}</div>
                   <div className="mt-1 text-xs text-muted-foreground">
-                    ₩{r.proposed_amount_krw.toLocaleString("ko-KR")} · {new Date(r.created_at).toLocaleString("ko-KR")}
+                    ₩{r.proposed_amount_krw.toLocaleString("ko-KR")} ·{" "}
+                    {new Date(r.created_at).toLocaleString("ko-KR")}
                   </div>
                 </div>
                 <span

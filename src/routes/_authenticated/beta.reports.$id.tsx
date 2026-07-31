@@ -68,7 +68,9 @@ function ReportDetail() {
             <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed">{r.scenario}</p>
           </section>
           <section className="mt-4 rounded-lg border border-border bg-card p-6">
-            <div className="text-xs uppercase tracking-widest text-muted-foreground">Guardian 판정</div>
+            <div className="text-xs uppercase tracking-widest text-muted-foreground">
+              Guardian 판정
+            </div>
             <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed">{r.reason}</p>
           </section>
         </>

@@ -66,15 +66,17 @@ function OperatorPage() {
   }
 
   if (role.isLoading) {
-    return <main className="mx-auto max-w-5xl px-6 py-16 text-sm text-muted-foreground">권한 확인 중…</main>;
+    return (
+      <main className="mx-auto max-w-5xl px-6 py-16 text-sm text-muted-foreground">
+        권한 확인 중…
+      </main>
+    );
   }
   if (!isOp) {
     return (
       <main className="mx-auto max-w-md px-6 py-24 text-center">
         <h1 className="text-2xl font-semibold tracking-tight">운영자 전용</h1>
-        <p className="mt-3 text-sm text-muted-foreground">
-          이 페이지는 운영자 권한이 필요합니다.
-        </p>
+        <p className="mt-3 text-sm text-muted-foreground">이 페이지는 운영자 권한이 필요합니다.</p>
       </main>
     );
   }
@@ -130,9 +132,7 @@ function OperatorPage() {
                       <input
                         placeholder="취소 사유 (10자 이상)"
                         value={reasonById[o.id] ?? ""}
-                        onChange={(e) =>
-                          setReasonById((s) => ({ ...s, [o.id]: e.target.value }))
-                        }
+                        onChange={(e) => setReasonById((s) => ({ ...s, [o.id]: e.target.value }))}
                         className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-ring md:w-56"
                       />
                       <button

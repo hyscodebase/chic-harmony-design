@@ -21,7 +21,12 @@ type OrderRow = {
   amount_krw: number;
   status: string;
   created_at: string;
-  payments: Array<{ status: string; method: string | null; receipt_no: string | null; approved_at: string | null }>;
+  payments: Array<{
+    status: string;
+    method: string | null;
+    receipt_no: string | null;
+    approved_at: string | null;
+  }>;
   entitlements: Array<{ status: string; reports_remaining: number; expires_at: string }>;
   cancellation_requests: Array<{ reason: string; completed_at: string | null }>;
 };

@@ -1,7 +1,6 @@
 // Server-only helpers for IntentLock. Never imported from client bundles.
 import { createHash, randomUUID } from "crypto";
-
-export const AI_MODEL = "google/gemini-2.5-flash";
+import { callAIJson } from "./ai-provider.server";
 
 export function sha256Hex(input: string): string {
   return createHash("sha256").update(input).digest("hex");
@@ -28,36 +27,6 @@ export interface GuardianJudgement {
   };
 }
 
-interface GatewayMessage {
-  role: "system" | "user";
-  content: string;
-}
-
-async function callLovableAI(messages: GatewayMessage[]): Promise<string> {
-  const key = process.env.LOVABLE_API_KEY;
-  if (!key) throw new Error("LOVABLE_API_KEY 가 없습니다.");
-  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${key}`,
-    },
-    body: JSON.stringify({
-      model: AI_MODEL,
-      messages,
-      response_format: { type: "json_object" },
-    }),
-  });
-  if (res.status === 429) throw new Error("AI 사용량 한도에 도달했습니다. 잠시 후 다시 시도해주세요.");
-  if (res.status === 402) throw new Error("AI 크레딧이 소진되었습니다. 결제 후 다시 시도해주세요.");
-  if (!res.ok) {
-    const txt = await res.text();
-    throw new Error(`AI 게이트웨이 오류 (${res.status}): ${txt.slice(0, 200)}`);
-  }
-  const data = (await res.json()) as { choices: { message: { content: string } }[] };
-  return data.choices?.[0]?.message?.content ?? "{}";
-}
-
 export async function normalizeIntent(
   naturalLanguage: string,
   product: { name: string; purpose: string; amount_krw: number },
@@ -75,7 +44,7 @@ export async function normalizeIntent(
 상품 정보: 이름="${product.name}", 목적="${product.purpose}", 정가=${product.amount_krw}원.
 사용자 문장에 금액이 없으면 amount_limit_krw 는 정가로 설정한다.
 오직 JSON 오브젝트 하나만 반환하고 어떤 설명도 붙이지 않는다.`;
-  const raw = await callLovableAI([
+  const raw = await callAIJson([
     { role: "system", content: system },
     { role: "user", content: naturalLanguage },
   ]);
@@ -136,7 +105,7 @@ export async function guardianJudge(
   "reason": string,
   "matched": { "amount": boolean, "purpose": boolean }
 }`;
-  const raw = await callLovableAI([
+  const raw = await callAIJson([
     { role: "system", content: system },
     { role: "user", content: scenario },
   ]);

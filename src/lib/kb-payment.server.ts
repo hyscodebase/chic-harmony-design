@@ -28,9 +28,9 @@ type AuthRecord = PaymentAuthorization & { orderId: string };
 
 type Store = {
   intents: Map<string, IntentRecord>; // by intentToken
-  cards: Map<string, CardRecord>;     // by cardId
+  cards: Map<string, CardRecord>; // by cardId
   authByOrder: Map<string, AuthRecord>; // idempotency by orderId
-  idem: Map<string, unknown>;         // idempotencyKey -> response
+  idem: Map<string, unknown>; // idempotencyKey -> response
 };
 
 const g = globalThis as unknown as { __kbPaymentStore?: Store };
@@ -44,7 +44,10 @@ const store: Store = (g.__kbPaymentStore ??= {
 function rand(bytes: number) {
   const arr = new Uint8Array(bytes);
   crypto.getRandomValues(arr);
-  return Array.from(arr).map((b) => b.toString(16).padStart(2, "0")).join("").toUpperCase();
+  return Array.from(arr)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("")
+    .toUpperCase();
 }
 
 function idem<T>(key: string, produce: () => T): T {
@@ -108,10 +111,15 @@ export class MockKbPaymentAdapter implements KbPaymentAdapter {
       const r = ensureIntent(input.intent.intentToken);
       if (r.orderId !== input.intent.orderId) throw new Error("주문 정보가 일치하지 않습니다.");
       if (r.merchant !== input.intent.merchant) throw new Error("판매자가 일치하지 않습니다.");
-      if (r.productTitle !== input.intent.productTitle) throw new Error("상품이 일치하지 않습니다.");
+      if (r.productTitle !== input.intent.productTitle)
+        throw new Error("상품이 일치하지 않습니다.");
       if (r.amount !== input.intent.amount) throw new Error("금액이 일치하지 않습니다.");
       r.status = "VERIFIED";
-      return { intentToken: r.intentToken, status: "VERIFIED", verifiedAt: new Date().toISOString() };
+      return {
+        intentToken: r.intentToken,
+        status: "VERIFIED",
+        verifiedAt: new Date().toISOString(),
+      };
     });
   }
 
@@ -144,7 +152,12 @@ export class MockKbPaymentAdapter implements KbPaymentAdapter {
       const networkToken = `NPT-KB-${rand(6)}`;
       card.boundNetworkToken = networkToken;
       r.status = "EXCHANGED";
-      return { networkToken, network: "KB", status: "TOKENIZED", issuedAt: new Date().toISOString() };
+      return {
+        networkToken,
+        network: "KB",
+        status: "TOKENIZED",
+        issuedAt: new Date().toISOString(),
+      };
     });
   }
 
@@ -156,9 +169,12 @@ export class MockKbPaymentAdapter implements KbPaymentAdapter {
       const r = ensureIntent(input.intent.intentToken);
       const card = store.cards.get(input.cardId);
       if (!card || card.status !== "ACTIVE") throw new Error("가상카드가 유효하지 않습니다.");
-      if (card.boundNetworkToken !== input.networkToken) throw new Error("Network Token 이 일치하지 않습니다.");
-      if (r.amount !== input.intent.amount) throw new Error("금액이 변경되었습니다. 결제를 중단합니다.");
-      if (r.merchant !== input.intent.merchant) throw new Error("판매자가 변경되었습니다. 결제를 중단합니다.");
+      if (card.boundNetworkToken !== input.networkToken)
+        throw new Error("Network Token 이 일치하지 않습니다.");
+      if (r.amount !== input.intent.amount)
+        throw new Error("금액이 변경되었습니다. 결제를 중단합니다.");
+      if (r.merchant !== input.intent.merchant)
+        throw new Error("판매자가 변경되었습니다. 결제를 중단합니다.");
       // Authorize + consume
       r.status = "CONSUMED";
       card.status = "DESTROYED";
