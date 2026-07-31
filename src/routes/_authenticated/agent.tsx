@@ -93,23 +93,43 @@ function AgentPage() {
     return () => clearInterval(timer);
   }, [running, sim]);
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function execute(params: {
+    request: string;
+    amount_limit_krw: number;
+    banned_sellers: string;
+  }) {
     setError(null);
     setSim(null);
     setDoneStages([]);
     setActiveStage("contract");
     setRunning(true);
     try {
-      const result = await run({
-        data: { request, amount_limit_krw: limit, banned_sellers: banned },
-      });
+      const result = await run({ data: params });
       setSim(result);
     } catch (err) {
       setError((err as Error).message);
       setRunning(false);
       setActiveStage(null);
     }
+  }
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    await execute({ request, amount_limit_krw: limit, banned_sellers: banned });
+  }
+
+  async function onDenyDemo() {
+    const demoRequest = "애플 비전 프로 정품 새제품 사줘. 최신 모델로.";
+    const demoLimit = 50000;
+    const demoBanned = "쿠팡, 네이버, 지마켓, 11번가, 옥션, 아마존, 알리, 테무, 위메프, 티몬";
+    setRequest(demoRequest);
+    setLimit(demoLimit);
+    setBanned(demoBanned);
+    await execute({
+      request: demoRequest,
+      amount_limit_krw: demoLimit,
+      banned_sellers: demoBanned,
+    });
   }
 
   const pick =
@@ -181,13 +201,23 @@ function AgentPage() {
             요청은 <span className="text-foreground">Intent Contract</span> 로 정규화되고,
             IntentLock 이 결제 순간에 다시 검증합니다.
           </div>
-          <button
-            type="submit"
-            disabled={running}
-            className="rounded-full bg-foreground px-6 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90 disabled:opacity-50"
-          >
-            {running ? "에이전트 작동 중..." : "에이전트 실행"}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="submit"
+              disabled={running}
+              className="rounded-full bg-foreground px-6 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90 disabled:opacity-50"
+            >
+              {running ? "에이전트 작동 중..." : "에이전트 실행"}
+            </button>
+            <button
+              type="button"
+              onClick={onDenyDemo}
+              disabled={running}
+              className="rounded-full bg-destructive px-6 py-2.5 text-sm font-medium text-destructive-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+            >
+              거부 시나리오 데모
+            </button>
+          </div>
         </div>
       </form>
 
