@@ -728,6 +728,7 @@ export const simulateAgentPurchase = createServerFn({ method: "POST" })
         request: z.string().min(5).max(400),
         amount_limit_krw: z.number().int().min(1000).max(1_000_000_000),
         banned_sellers: z.string().max(200).optional().default(""),
+        force_block: z.boolean().optional().default(false),
       })
       .parse(input),
   )
@@ -873,8 +874,30 @@ export const simulateAgentPurchase = createServerFn({ method: "POST" })
       }
     }
 
+    // 데모용 강제 거부: 계약 위반으로 판정하고 대체 추천도 하지 않는다.
+    if (data.force_block) {
+      verdict = "BLOCK";
+      reason = "계약 상한 및 판매자 제한 위반 — 결제 차단";
+      if (checks.length > 0) {
+        checks[0] = {
+          ...checks[0],
+          pass: false,
+          detail: pick
+            ? `${pick.price_krw.toLocaleString("ko-KR")}원 > ${contract.amount_limit_krw.toLocaleString("ko-KR")}원`
+            : checks[0].detail,
+        };
+        if (checks[1]) {
+          checks[1] = {
+            ...checks[1],
+            pass: false,
+            detail: pick ? `${pick.seller} 은(는) 금지 판매자` : checks[1].detail,
+          };
+        }
+      }
+    }
+
     // Guardian 이 BLOCK 이면 다른 후보에서 자동 재추천 시도
-    if (verdict === "BLOCK" && candidates.length > 0) {
+    if (!data.force_block && verdict === "BLOCK" && candidates.length > 0) {
       const fallback = candidates.findIndex(
         (c) =>
           c.price_krw <= contract.amount_limit_krw &&

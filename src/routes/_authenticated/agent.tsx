@@ -97,6 +97,7 @@ function AgentPage() {
     request: string;
     amount_limit_krw: number;
     banned_sellers: string;
+    force_block?: boolean;
   }) {
     setError(null);
     setSim(null);
@@ -129,6 +130,7 @@ function AgentPage() {
       request: demoRequest,
       amount_limit_krw: demoLimit,
       banned_sellers: demoBanned,
+      force_block: true,
     });
   }
 
