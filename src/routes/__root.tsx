@@ -183,9 +183,6 @@ function SiteChrome() {
           <Link to="/agent" className="hover:text-foreground transition-colors">
             AI 에이전트
           </Link>
-          <Link to="/models" className="hover:text-foreground transition-colors">
-            모델 비교
-          </Link>
           <Link to="/purchases" className="hover:text-foreground transition-colors">
             구매 내역
           </Link>
