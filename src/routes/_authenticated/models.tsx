@@ -335,6 +335,87 @@ function ModelsPage() {
         </table>
       </div>
 
+      <section className="mt-14">
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-medium tracking-tight text-foreground">
+              카탈로그 미포함 모델 — 예측치
+            </h2>
+            <p className="mt-2 max-w-2xl text-xs leading-relaxed text-muted-foreground">
+              Kimi·DeepSeek 처럼 Lovable AI Gateway 카탈로그에 없는 모델은 직접 호출할 수 없어
+              실측이 불가능합니다. 아래는 각 모델의 공개 API 단가와 IntentLock 실사용량(입력
+              400 / 출력 1,000 토큰)을 곱한 뒤, 실측으로 역산한 환율(1 크레딧 ≒ USD 0.19)로
+              환산한 <strong className="text-foreground">추정값</strong>입니다.
+            </p>
+          </div>
+          <span className="rounded-full border border-dashed border-border px-3 py-1 text-[10px] uppercase tracking-widest text-muted-foreground">
+            측정 아님 / 추정
+          </span>
+        </div>
+
+        <div className="overflow-hidden rounded-lg border border-dashed border-border">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-muted/30 text-xs uppercase tracking-wider text-muted-foreground">
+              <tr>
+                <th className="px-4 py-3 font-medium">모델</th>
+                <th className="px-4 py-3 font-medium">티어</th>
+                <th className="px-4 py-3 font-medium text-right">공개 단가(1M in/out)</th>
+                <th className="px-4 py-3 font-medium text-right">예측 비용(콜)</th>
+                <th className="px-4 py-3 font-medium text-right">예측 지연</th>
+                <th className="px-4 py-3 font-medium">신뢰도</th>
+                <th className="px-4 py-3 font-medium">비고</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {[...PREDICTED]
+                .sort((a, b) => a.predictedCredits - b.predictedCredits)
+                .map((m) => (
+                  <tr key={m.id} className="transition-colors hover:bg-muted/20">
+                    <td className="px-4 py-4">
+                      <div className="font-medium text-foreground">{m.id}</div>
+                      <div className="text-xs text-muted-foreground">{m.vendor}</div>
+                    </td>
+                    <td className="px-4 py-4 text-muted-foreground">{m.tier}</td>
+                    <td className="px-4 py-4 text-right tabular-nums text-muted-foreground">
+                      ${m.priceIn.toFixed(2)} / ${m.priceOut.toFixed(2)}
+                    </td>
+                    <td className="px-4 py-4 text-right tabular-nums font-medium text-foreground">
+                      ≈ {formatCredits(m.predictedCredits)} 크레딧
+                    </td>
+                    <td className="px-4 py-4 text-right tabular-nums text-muted-foreground">
+                      ≈ {formatMs(m.predictedLatencyMs)}
+                    </td>
+                    <td className="px-4 py-4">
+                      <span
+                        className={`inline-block rounded-full border px-2 py-0.5 text-[10px] ${
+                          m.confidence === "높음"
+                            ? "border-foreground text-foreground"
+                            : m.confidence === "보통"
+                              ? "border-border text-muted-foreground"
+                              : "border-dashed border-border text-muted-foreground/70"
+                        }`}
+                      >
+                        {m.confidence}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4 text-xs leading-relaxed text-muted-foreground">
+                      {m.note}
+                    </td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+        </div>
+
+        <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+          결론: &quot;경량 모델이라 더 싸다&quot;는 가정은 Kimi K2·GLM·R1 에는 적용되지 않습니다.
+          예측치 기준으로 현재 실측 최저인{" "}
+          <span className="text-foreground">google/gemini-2.5-flash-lite (0.0015 크레딧)</span> 보다
+          확실히 저렴한 후보는 Mistral Small·Qwen3 30B 급 초경량 모델뿐이며, 절감폭은 콜당 0.0003~0.0006
+          크레딧 수준에 불과합니다.
+        </p>
+      </section>
+
       <div className="mt-10 grid gap-6 md:grid-cols-2">
         <section className="rounded-lg border border-border p-6">
           <h2 className="mb-3 text-lg font-medium tracking-tight text-foreground">
