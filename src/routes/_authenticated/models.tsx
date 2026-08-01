@@ -114,9 +114,117 @@ const MODELS: ModelRow[] = [
   },
 ];
 
+// 카탈로그 미포함 모델의 "예측치".
+// 산출식: 각 모델 공개 API 단가(USD/1M tokens) × IntentLock 실제 사용량(입력 400 / 출력 1000 토큰)
+// 을 계산한 뒤, 실측으로 역산한 환율(1 Lovable 크레딧 ≒ USD 0.19)로 환산했습니다.
+// 지연시간은 공개 벤치마크(출력 토큰/초)와 추론 여부를 기준으로 한 추정 범위의 중간값입니다.
+type PredictedRow = {
+  id: string;
+  vendor: string;
+  tier: "초경량" | "경량" | "표준" | "추론";
+  priceIn: number; // USD / 1M input tokens
+  priceOut: number; // USD / 1M output tokens
+  predictedCredits: number;
+  predictedLatencyMs: number;
+  confidence: "높음" | "보통" | "낮음";
+  note: string;
+};
+
+const PREDICTED: PredictedRow[] = [
+  {
+    id: "mistral/mistral-small-3.2",
+    vendor: "Mistral",
+    tier: "초경량",
+    priceIn: 0.05,
+    priceOut: 0.15,
+    predictedCredits: 0.0009,
+    predictedLatencyMs: 1300,
+    confidence: "높음",
+    note: "단가가 가장 낮은 축. JSON 계약 정규화 수준이면 품질도 충분할 가능성이 큼.",
+  },
+  {
+    id: "qwen/qwen3-30b (turbo)",
+    vendor: "Alibaba",
+    tier: "초경량",
+    priceIn: 0.05,
+    priceOut: 0.2,
+    predictedCredits: 0.0012,
+    predictedLatencyMs: 1500,
+    confidence: "높음",
+    note: "gemini-2.5-flash-lite 와 비슷한 비용대. 한국어 처리도 준수한 편.",
+  },
+  {
+    id: "meta/llama-4-scout",
+    vendor: "Meta",
+    tier: "경량",
+    priceIn: 0.08,
+    priceOut: 0.3,
+    predictedCredits: 0.0017,
+    predictedLatencyMs: 1200,
+    confidence: "보통",
+    note: "서빙 제공자(Groq 등)에 따라 지연이 크게 갈림. 최속 구간은 1초 미만도 가능.",
+  },
+  {
+    id: "deepseek/deepseek-v3.2",
+    vendor: "DeepSeek",
+    tier: "경량",
+    priceIn: 0.28,
+    priceOut: 0.42,
+    predictedCredits: 0.0028,
+    predictedLatencyMs: 4000,
+    confidence: "보통",
+    note: "출력 단가가 매우 저렴해 장문 출력에 유리. 대신 첫 토큰 지연이 큼.",
+  },
+  {
+    id: "deepseek/deepseek-v4 (미출시·추정)",
+    vendor: "DeepSeek",
+    tier: "표준",
+    priceIn: 0.3,
+    priceOut: 0.5,
+    predictedCredits: 0.0032,
+    predictedLatencyMs: 4000,
+    confidence: "낮음",
+    note: "공식 출시·가격 미발표. V3 계열 가격 정책이 유지된다는 가정의 추정치입니다.",
+  },
+  {
+    id: "moonshotai/kimi-k2",
+    vendor: "Moonshot",
+    tier: "표준",
+    priceIn: 0.6,
+    priceOut: 2.5,
+    predictedCredits: 0.0144,
+    predictedLatencyMs: 3500,
+    confidence: "보통",
+    note: "경량 모델이 아니라 대형 MoE. gemini-2.5-flash 보다 오히려 비쌀 것으로 예측됨.",
+  },
+  {
+    id: "zhipu/glm-4.6",
+    vendor: "Zhipu",
+    tier: "표준",
+    priceIn: 0.6,
+    priceOut: 2.2,
+    predictedCredits: 0.0128,
+    predictedLatencyMs: 3800,
+    confidence: "낮음",
+    note: "제공자별 단가 편차가 커 예측 신뢰도가 낮습니다.",
+  },
+  {
+    id: "deepseek/deepseek-r1",
+    vendor: "DeepSeek",
+    tier: "추론",
+    priceIn: 0.55,
+    priceOut: 2.19,
+    predictedCredits: 0.0126,
+    predictedLatencyMs: 12000,
+    confidence: "보통",
+    note: "추론 토큰이 과금되어 실사용 비용은 예측치의 2~3배까지 오를 수 있음. 게이트웨이 용도로는 부적합.",
+  },
+];
+
 const UNAVAILABLE = [
-  { name: "Moonshot Kimi", reason: "Lovable AI Gateway 허용 모델 카탈로그에 미포함" },
-  { name: "DeepSeek V4 / DeepSeek-R1", reason: "Lovable AI Gateway 허용 모델 카탈로그에 미포함" },
+  { name: "Moonshot Kimi", reason: "Lovable AI Gateway 허용 모델 카탈로그에 미포함 — 아래 예측표만 참고" },
+  { name: "DeepSeek V4 / DeepSeek-R1", reason: "Lovable AI Gateway 허용 모델 카탈로그에 미포함 — 아래 예측표만 참고" },
+  { name: "Qwen / Llama / Mistral / GLM", reason: "게이트웨이 미지원. 사용 시 별도 provider 키 연동이 필요" },
 ];
 
 function formatCredits(n: number): string {
@@ -226,6 +334,87 @@ function ModelsPage() {
           </tbody>
         </table>
       </div>
+
+      <section className="mt-14">
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-medium tracking-tight text-foreground">
+              카탈로그 미포함 모델 — 예측치
+            </h2>
+            <p className="mt-2 max-w-2xl text-xs leading-relaxed text-muted-foreground">
+              Kimi·DeepSeek 처럼 Lovable AI Gateway 카탈로그에 없는 모델은 직접 호출할 수 없어
+              실측이 불가능합니다. 아래는 각 모델의 공개 API 단가와 IntentLock 실사용량(입력
+              400 / 출력 1,000 토큰)을 곱한 뒤, 실측으로 역산한 환율(1 크레딧 ≒ USD 0.19)로
+              환산한 <strong className="text-foreground">추정값</strong>입니다.
+            </p>
+          </div>
+          <span className="rounded-full border border-dashed border-border px-3 py-1 text-[10px] uppercase tracking-widest text-muted-foreground">
+            측정 아님 / 추정
+          </span>
+        </div>
+
+        <div className="overflow-hidden rounded-lg border border-dashed border-border">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-muted/30 text-xs uppercase tracking-wider text-muted-foreground">
+              <tr>
+                <th className="px-4 py-3 font-medium">모델</th>
+                <th className="px-4 py-3 font-medium">티어</th>
+                <th className="px-4 py-3 font-medium text-right">공개 단가(1M in/out)</th>
+                <th className="px-4 py-3 font-medium text-right">예측 비용(콜)</th>
+                <th className="px-4 py-3 font-medium text-right">예측 지연</th>
+                <th className="px-4 py-3 font-medium">신뢰도</th>
+                <th className="px-4 py-3 font-medium">비고</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {[...PREDICTED]
+                .sort((a, b) => a.predictedCredits - b.predictedCredits)
+                .map((m) => (
+                  <tr key={m.id} className="transition-colors hover:bg-muted/20">
+                    <td className="px-4 py-4">
+                      <div className="font-medium text-foreground">{m.id}</div>
+                      <div className="text-xs text-muted-foreground">{m.vendor}</div>
+                    </td>
+                    <td className="px-4 py-4 text-muted-foreground">{m.tier}</td>
+                    <td className="px-4 py-4 text-right tabular-nums text-muted-foreground">
+                      ${m.priceIn.toFixed(2)} / ${m.priceOut.toFixed(2)}
+                    </td>
+                    <td className="px-4 py-4 text-right tabular-nums font-medium text-foreground">
+                      ≈ {formatCredits(m.predictedCredits)} 크레딧
+                    </td>
+                    <td className="px-4 py-4 text-right tabular-nums text-muted-foreground">
+                      ≈ {formatMs(m.predictedLatencyMs)}
+                    </td>
+                    <td className="px-4 py-4">
+                      <span
+                        className={`inline-block rounded-full border px-2 py-0.5 text-[10px] ${
+                          m.confidence === "높음"
+                            ? "border-foreground text-foreground"
+                            : m.confidence === "보통"
+                              ? "border-border text-muted-foreground"
+                              : "border-dashed border-border text-muted-foreground/70"
+                        }`}
+                      >
+                        {m.confidence}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4 text-xs leading-relaxed text-muted-foreground">
+                      {m.note}
+                    </td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+        </div>
+
+        <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+          결론: &quot;경량 모델이라 더 싸다&quot;는 가정은 Kimi K2·GLM·R1 에는 적용되지 않습니다.
+          예측치 기준으로 현재 실측 최저인{" "}
+          <span className="text-foreground">google/gemini-2.5-flash-lite (0.0015 크레딧)</span> 보다
+          확실히 저렴한 후보는 Mistral Small·Qwen3 30B 급 초경량 모델뿐이며, 절감폭은 콜당 0.0003~0.0006
+          크레딧 수준에 불과합니다.
+        </p>
+      </section>
 
       <div className="mt-10 grid gap-6 md:grid-cols-2">
         <section className="rounded-lg border border-border p-6">
