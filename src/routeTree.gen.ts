@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedAgentRouteImport } from './routes/_authenticated/agent'
 import { Route as AuthenticatedCheckoutRouteImport } from './routes/_authenticated/checkout'
+import { Route as AuthenticatedModelsRouteImport } from './routes/_authenticated/models'
 import { Route as AuthenticatedOperatorRouteImport } from './routes/_authenticated/operator'
 import { Route as AuthenticatedPurchasesRouteImport } from './routes/_authenticated/purchases'
 import { Route as AuthenticatedBetaIndexRouteImport } from './routes/_authenticated/beta.index'
@@ -43,6 +44,11 @@ const AuthenticatedCheckoutRoute = AuthenticatedCheckoutRouteImport.update({
   path: '/checkout',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedModelsRoute = AuthenticatedModelsRouteImport.update({
+  id: '/models',
+  path: '/models',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedOperatorRoute = AuthenticatedOperatorRouteImport.update({
   id: '/operator',
   path: '/operator',
@@ -70,6 +76,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/agent': typeof AuthenticatedAgentRoute
   '/checkout': typeof AuthenticatedCheckoutRoute
+  '/models': typeof AuthenticatedModelsRoute
   '/operator': typeof AuthenticatedOperatorRoute
   '/purchases': typeof AuthenticatedPurchasesRoute
   '/beta/': typeof AuthenticatedBetaIndexRoute
@@ -80,6 +87,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/agent': typeof AuthenticatedAgentRoute
   '/checkout': typeof AuthenticatedCheckoutRoute
+  '/models': typeof AuthenticatedModelsRoute
   '/operator': typeof AuthenticatedOperatorRoute
   '/purchases': typeof AuthenticatedPurchasesRoute
   '/beta': typeof AuthenticatedBetaIndexRoute
@@ -92,6 +100,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/agent': typeof AuthenticatedAgentRoute
   '/_authenticated/checkout': typeof AuthenticatedCheckoutRoute
+  '/_authenticated/models': typeof AuthenticatedModelsRoute
   '/_authenticated/operator': typeof AuthenticatedOperatorRoute
   '/_authenticated/purchases': typeof AuthenticatedPurchasesRoute
   '/_authenticated/beta/': typeof AuthenticatedBetaIndexRoute
@@ -104,6 +113,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/agent'
     | '/checkout'
+    | '/models'
     | '/operator'
     | '/purchases'
     | '/beta/'
@@ -114,6 +124,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/agent'
     | '/checkout'
+    | '/models'
     | '/operator'
     | '/purchases'
     | '/beta'
@@ -125,6 +136,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authenticated/agent'
     | '/_authenticated/checkout'
+    | '/_authenticated/models'
     | '/_authenticated/operator'
     | '/_authenticated/purchases'
     | '/_authenticated/beta/'
@@ -174,6 +186,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCheckoutRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/models': {
+      id: '/_authenticated/models'
+      path: '/models'
+      fullPath: '/models'
+      preLoaderRoute: typeof AuthenticatedModelsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/operator': {
       id: '/_authenticated/operator'
       path: '/operator'
@@ -208,6 +227,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAgentRoute: typeof AuthenticatedAgentRoute
   AuthenticatedCheckoutRoute: typeof AuthenticatedCheckoutRoute
+  AuthenticatedModelsRoute: typeof AuthenticatedModelsRoute
   AuthenticatedOperatorRoute: typeof AuthenticatedOperatorRoute
   AuthenticatedPurchasesRoute: typeof AuthenticatedPurchasesRoute
   AuthenticatedBetaIndexRoute: typeof AuthenticatedBetaIndexRoute
@@ -217,6 +237,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAgentRoute: AuthenticatedAgentRoute,
   AuthenticatedCheckoutRoute: AuthenticatedCheckoutRoute,
+  AuthenticatedModelsRoute: AuthenticatedModelsRoute,
   AuthenticatedOperatorRoute: AuthenticatedOperatorRoute,
   AuthenticatedPurchasesRoute: AuthenticatedPurchasesRoute,
   AuthenticatedBetaIndexRoute: AuthenticatedBetaIndexRoute,
