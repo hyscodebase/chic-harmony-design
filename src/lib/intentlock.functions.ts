@@ -178,7 +178,7 @@ export const createContract = createServerFn({ method: "POST" })
 export const approveContract = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
-    z.object({ contract_id: z.string().uuid(), fingerprint: z.string() }).parse(input),
+    parseOrThrow(z.object({ contract_id: z.string().uuid(), fingerprint: z.string() }), input),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
