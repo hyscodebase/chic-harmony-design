@@ -263,9 +263,10 @@ export const guardCheckout = createServerFn({ method: "POST" })
 export const mockConfirmPayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
-    z
-      .object({ order_id: z.string().uuid(), method: z.enum(["카드", "계좌이체", "간편결제"]) })
-      .parse(input),
+    parseOrThrow(
+      z.object({ order_id: z.string().uuid(), method: z.enum(["카드", "계좌이체", "간편결제"]) }),
+      input,
+    ),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
