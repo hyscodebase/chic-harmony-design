@@ -837,6 +837,7 @@ export const simulateAgentPurchase = createServerFn({ method: "POST" })
       0,
       Math.min(candidates.length - 1, Math.round(Number(parsed.recommendation?.index ?? 0))),
     );
+    let recIndexSeed = 0;
     if (!data.force_block && contract.banned_sellers.length > 0) {
       const pickedTitle = candidates[rawRecIndex]?.title;
       const filtered = candidates.filter((c) => !isBannedSeller(c.seller));
