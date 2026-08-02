@@ -15,12 +15,14 @@ export default defineConfig({
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     server: { entry: "server" },
   },
-  define: {
-    "import.meta.env.VITE_SUPABASE_URL": JSON.stringify(
-      process.env.VITE_SUPABASE_URL || SUPABASE_URL,
-    ),
-    "import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY": JSON.stringify(
-      process.env.VITE_SUPABASE_PUBLISHABLE_KEY || SUPABASE_PUBLISHABLE_KEY,
-    ),
+  vite: {
+    define: {
+      "import.meta.env.VITE_SUPABASE_URL": JSON.stringify(
+        process.env.VITE_SUPABASE_URL || SUPABASE_URL,
+      ),
+      "import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY": JSON.stringify(
+        process.env.VITE_SUPABASE_PUBLISHABLE_KEY || SUPABASE_PUBLISHABLE_KEY,
+      ),
+    },
   },
 });
