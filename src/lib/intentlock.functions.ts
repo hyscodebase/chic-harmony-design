@@ -827,10 +827,29 @@ export const simulateAgentPurchase = createServerFn({ method: "POST" })
       note: String(c?.note ?? "").slice(0, 200),
     }));
 
-    let recIndex = Math.max(
+    // 금지 판매자 후보는 결정론적으로 제외한다 (AI가 규칙을 어겨 포함시키는 경우 방어).
+    // 데모용 강제 거부 시나리오에서는 차단 근거를 보여주기 위해 그대로 둔다.
+    const isBannedSeller = (seller: string) =>
+      contract.banned_sellers.some(
+        (b) => b && seller.toLowerCase().includes(b.toLowerCase()),
+      );
+    const rawRecIndex = Math.max(
       0,
       Math.min(candidates.length - 1, Math.round(Number(parsed.recommendation?.index ?? 0))),
     );
+    if (!data.force_block && contract.banned_sellers.length > 0) {
+      const pickedTitle = candidates[rawRecIndex]?.title;
+      const filtered = candidates.filter((c) => !isBannedSeller(c.seller));
+      if (filtered.length > 0 && filtered.length !== candidates.length) {
+        candidates.length = 0;
+        candidates.push(...filtered);
+      }
+      const keptIndex = candidates.findIndex((c) => c.title === pickedTitle);
+      recIndexSeed = keptIndex >= 0 ? keptIndex : 0;
+    } else {
+      recIndexSeed = rawRecIndex;
+    }
+    let recIndex = Math.max(0, Math.min(candidates.length - 1, recIndexSeed));
     const recReason = String(parsed.recommendation?.reason ?? "AI 추천").slice(0, 300);
     const pick = candidates[recIndex];
 
