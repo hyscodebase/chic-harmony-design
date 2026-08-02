@@ -45,7 +45,7 @@ export const getBetaPassProduct = createServerFn({ method: "GET" })
 // ---------- 주문 생성 ----------
 export const createOrder = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => z.object({ idempotency_key: z.string().uuid() }).parse(input))
+  .validator((input: unknown) => parseOrThrow(z.object({ idempotency_key: z.string().uuid() }), input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 
@@ -219,7 +219,7 @@ export const approveContract = createServerFn({ method: "POST" })
 // ---------- Guardian 결제 판정 ----------
 export const guardCheckout = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => z.object({ order_id: z.string().uuid() }).parse(input))
+  .validator((input: unknown) => parseOrThrow(z.object({ order_id: z.string().uuid() }), input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const order = await supabase
@@ -541,7 +541,7 @@ export const listMyOrders = createServerFn({ method: "GET" })
 // ---------- 테스트 서버: 즉시 구매 (0원) ----------
 export const testInstantPurchase = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => z.object({ idempotency_key: z.string().uuid() }).parse(input))
+  .validator((input: unknown) => parseOrThrow(z.object({ idempotency_key: z.string().uuid() }), input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 
@@ -622,7 +622,7 @@ export const testInstantPurchase = createServerFn({ method: "POST" })
 
 export const getOrderDetail = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => z.object({ order_id: z.string().uuid() }).parse(input))
+  .validator((input: unknown) => parseOrThrow(z.object({ order_id: z.string().uuid() }), input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const order = await supabase
@@ -669,7 +669,7 @@ export const listMyReports = createServerFn({ method: "GET" })
 
 export const getReport = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .validator((input: unknown) => parseOrThrow(z.object({ id: z.string().uuid() }), input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const r = await supabase

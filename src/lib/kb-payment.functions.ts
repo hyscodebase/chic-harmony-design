@@ -75,7 +75,7 @@ export const kbAuthorizePayment = createServerFn({ method: "POST" })
 
 export const kbDestroyVirtualCard = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => z.object({ cardId: z.string().min(4).max(64) }).parse(input))
+  .validator((input: unknown) => parseOrThrow(z.object({ cardId: z.string().min(4).max(64) }), input))
   .handler(async ({ data }) => {
     const { getKbPaymentAdapter } = await import("./kb-payment.server");
     await getKbPaymentAdapter().destroyVirtualCard(data.cardId);
