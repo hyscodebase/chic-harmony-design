@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { parseOrThrow } from "./zod-errors";
 import type {
   VerifiedIntent,
   VirtualCardCredential,
