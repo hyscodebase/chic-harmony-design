@@ -379,14 +379,15 @@ export const mockConfirmPayment = createServerFn({ method: "POST" })
 export const generateGuardianReport = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
-    z
-      .object({
+    parseOrThrow(
+      z.object({
         entitlement_id: z.string().uuid(),
         scenario: z.string().min(10).max(500),
         proposed_amount_krw: z.number().int().min(0).max(100_000_000),
         proposed_purpose: z.string().min(2).max(100),
-      })
-      .parse(input),
+      }),
+      input,
+    ),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
