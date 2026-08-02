@@ -11,6 +11,7 @@ import {
   type NormalizedContract,
 } from "./intentlock.server";
 import { callAIJson } from "./ai-provider.server";
+import { parseOrThrow } from "./zod-errors";
 
 // Load service-role client only inside handlers (server-only module).
 async function getAdmin() {
