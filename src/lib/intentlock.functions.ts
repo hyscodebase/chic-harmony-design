@@ -11,6 +11,7 @@ import {
   type NormalizedContract,
 } from "./intentlock.server";
 import { callAIJson } from "./ai-provider.server";
+import { parseOrThrow } from "./zod-errors";
 
 // Load service-role client only inside handlers (server-only module).
 async function getAdmin() {
@@ -44,7 +45,7 @@ export const getBetaPassProduct = createServerFn({ method: "GET" })
 // ---------- 주문 생성 ----------
 export const createOrder = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => z.object({ idempotency_key: z.string().uuid() }).parse(input))
+  .validator((input: unknown) => parseOrThrow(z.object({ idempotency_key: z.string().uuid() }), input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 
@@ -94,12 +95,13 @@ export const createOrder = createServerFn({ method: "POST" })
 export const createContract = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
-    z
-      .object({
+    parseOrThrow(
+      z.object({
         order_id: z.string().uuid(),
         natural_language: z.string().min(5).max(500),
-      })
-      .parse(input),
+      }),
+      input,
+    ),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -176,7 +178,7 @@ export const createContract = createServerFn({ method: "POST" })
 export const approveContract = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
-    z.object({ contract_id: z.string().uuid(), fingerprint: z.string() }).parse(input),
+    parseOrThrow(z.object({ contract_id: z.string().uuid(), fingerprint: z.string() }), input),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -218,7 +220,7 @@ export const approveContract = createServerFn({ method: "POST" })
 // ---------- Guardian 결제 판정 ----------
 export const guardCheckout = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => z.object({ order_id: z.string().uuid() }).parse(input))
+  .validator((input: unknown) => parseOrThrow(z.object({ order_id: z.string().uuid() }), input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const order = await supabase
@@ -261,9 +263,10 @@ export const guardCheckout = createServerFn({ method: "POST" })
 export const mockConfirmPayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
-    z
-      .object({ order_id: z.string().uuid(), method: z.enum(["카드", "계좌이체", "간편결제"]) })
-      .parse(input),
+    parseOrThrow(
+      z.object({ order_id: z.string().uuid(), method: z.enum(["카드", "계좌이체", "간편결제"]) }),
+      input,
+    ),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -376,14 +379,15 @@ export const mockConfirmPayment = createServerFn({ method: "POST" })
 export const generateGuardianReport = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
-    z
-      .object({
+    parseOrThrow(
+      z.object({
         entitlement_id: z.string().uuid(),
         scenario: z.string().min(10).max(500),
         proposed_amount_krw: z.number().int().min(0).max(100_000_000),
         proposed_purpose: z.string().min(2).max(100),
-      })
-      .parse(input),
+      }),
+      input,
+    ),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -463,13 +467,14 @@ export const generateGuardianReport = createServerFn({ method: "POST" })
 export const operatorCancel = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
-    z
-      .object({
+    parseOrThrow(
+      z.object({
         order_id: z.string().uuid(),
         reason: z.string().min(10).max(200),
         idempotency_key: z.string().uuid(),
-      })
-      .parse(input),
+      }),
+      input,
+    ),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -540,7 +545,7 @@ export const listMyOrders = createServerFn({ method: "GET" })
 // ---------- 테스트 서버: 즉시 구매 (0원) ----------
 export const testInstantPurchase = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => z.object({ idempotency_key: z.string().uuid() }).parse(input))
+  .validator((input: unknown) => parseOrThrow(z.object({ idempotency_key: z.string().uuid() }), input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 
@@ -621,7 +626,7 @@ export const testInstantPurchase = createServerFn({ method: "POST" })
 
 export const getOrderDetail = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => z.object({ order_id: z.string().uuid() }).parse(input))
+  .validator((input: unknown) => parseOrThrow(z.object({ order_id: z.string().uuid() }), input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const order = await supabase
@@ -668,7 +673,7 @@ export const listMyReports = createServerFn({ method: "GET" })
 
 export const getReport = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .validator((input: unknown) => parseOrThrow(z.object({ id: z.string().uuid() }), input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const r = await supabase
@@ -749,14 +754,15 @@ type AgentSim = {
 export const simulateAgentPurchase = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
-    z
-      .object({
+    parseOrThrow(
+      z.object({
         request: z.string().min(5).max(400),
         amount_limit_krw: z.number().int().min(1000).max(1_000_000_000),
         banned_sellers: z.string().max(200).optional().default(""),
         force_block: z.boolean().optional().default(false),
-      })
-      .parse(input),
+      }),
+      input,
+    ),
   )
   .handler(async ({ data }) => {
     const banned = data.banned_sellers

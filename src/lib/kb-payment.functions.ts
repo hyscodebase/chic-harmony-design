@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { parseOrThrow } from "./zod-errors";
 import type {
   VerifiedIntent,
   VirtualCardCredential,
@@ -23,7 +24,7 @@ const IdemKey = z.string().min(8).max(128);
 export const kbVerifyIntent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
-    z.object({ intent: IntentBindingSchema, idempotencyKey: IdemKey }).parse(input),
+    parseOrThrow(z.object({ intent: IntentBindingSchema, idempotencyKey: IdemKey }), input),
   )
   .handler(async ({ data }): Promise<VerifiedIntent> => {
     const { getKbPaymentAdapter } = await import("./kb-payment.server");
@@ -33,7 +34,7 @@ export const kbVerifyIntent = createServerFn({ method: "POST" })
 export const kbIssueVirtualCard = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
-    z.object({ intent: IntentBindingSchema, idempotencyKey: IdemKey }).parse(input),
+    parseOrThrow(z.object({ intent: IntentBindingSchema, idempotencyKey: IdemKey }), input),
   )
   .handler(async ({ data }): Promise<VirtualCardCredential> => {
     const { getKbPaymentAdapter } = await import("./kb-payment.server");
@@ -43,13 +44,14 @@ export const kbIssueVirtualCard = createServerFn({ method: "POST" })
 export const kbExchangeNetworkToken = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
-    z
-      .object({
+    parseOrThrow(
+      z.object({
         intent: IntentBindingSchema,
         cardId: z.string().min(4).max(64),
         idempotencyKey: IdemKey,
-      })
-      .parse(input),
+      }),
+      input,
+    ),
   )
   .handler(async ({ data }): Promise<NetworkPaymentToken> => {
     const { getKbPaymentAdapter } = await import("./kb-payment.server");
@@ -59,14 +61,15 @@ export const kbExchangeNetworkToken = createServerFn({ method: "POST" })
 export const kbAuthorizePayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
-    z
-      .object({
+    parseOrThrow(
+      z.object({
         intent: IntentBindingSchema,
         cardId: z.string().min(4).max(64),
         networkToken: z.string().min(4).max(128),
         idempotencyKey: IdemKey,
-      })
-      .parse(input),
+      }),
+      input,
+    ),
   )
   .handler(async ({ data }): Promise<PaymentAuthorization> => {
     const { getKbPaymentAdapter } = await import("./kb-payment.server");
@@ -75,7 +78,7 @@ export const kbAuthorizePayment = createServerFn({ method: "POST" })
 
 export const kbDestroyVirtualCard = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => z.object({ cardId: z.string().min(4).max(64) }).parse(input))
+  .validator((input: unknown) => parseOrThrow(z.object({ cardId: z.string().min(4).max(64) }), input))
   .handler(async ({ data }) => {
     const { getKbPaymentAdapter } = await import("./kb-payment.server");
     await getKbPaymentAdapter().destroyVirtualCard(data.cardId);
