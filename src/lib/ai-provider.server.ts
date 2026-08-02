@@ -9,29 +9,38 @@ type AIProviderConfig = {
   model: string;
 };
 
-function getAIProviderConfig(): AIProviderConfig {
-  const apiKey = process.env.AI_API_KEY?.trim();
-  const apiUrl = process.env.AI_API_URL?.trim();
-  const model = process.env.AI_MODEL?.trim();
+const LOVABLE_AI_GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
+const DEFAULT_MODEL = "google/gemini-3.6-flash";
 
-  const missing = [!apiKey && "AI_API_KEY", !apiUrl && "AI_API_URL", !model && "AI_MODEL"].filter(
-    Boolean,
-  );
-  if (missing.length > 0) {
-    throw new Error(`AI 제공자 환경 변수가 필요합니다: ${missing.join(", ")}`);
+function getAIProviderConfig(): AIProviderConfig {
+  // Lovable AI Gateway (default). A custom OpenAI-compatible provider can still
+  // override it with AI_API_KEY + AI_API_URL.
+  const customKey = process.env.AI_API_KEY?.trim();
+  const customUrl = process.env.AI_API_URL?.trim();
+  const model = process.env.AI_MODEL?.trim() || DEFAULT_MODEL;
+
+  if (customKey && customUrl) {
+    return { apiKey: customKey, apiUrl: customUrl, model };
   }
 
-  return { apiKey, apiUrl, model } as AIProviderConfig;
+  const lovableKey = process.env.LOVABLE_API_KEY?.trim();
+  if (!lovableKey) {
+    throw new Error("AI 연결이 설정되지 않았습니다: LOVABLE_API_KEY 가 없습니다.");
+  }
+  return { apiKey: lovableKey, apiUrl: LOVABLE_AI_GATEWAY_URL, model };
 }
 
 /** Call an OpenAI-compatible chat-completions endpoint and return JSON text. */
 export async function callAIJson(messages: AIMessage[]): Promise<string> {
   const { apiKey, apiUrl, model } = getAIProviderConfig();
+  const isGateway = apiUrl === LOVABLE_AI_GATEWAY_URL;
   const response = await fetch(apiUrl, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
+      ...(isGateway
+        ? { "Lovable-API-Key": apiKey, "X-Lovable-AIG-SDK": "fetch" }
+        : { Authorization: `Bearer ${apiKey}` }),
     },
     body: JSON.stringify({
       model,
