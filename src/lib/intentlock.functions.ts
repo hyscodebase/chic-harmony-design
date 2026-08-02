@@ -766,7 +766,8 @@ export const simulateAgentPurchase = createServerFn({ method: "POST" })
 
     const system = `너는 한국 이커머스 쇼핑 에이전트다.
 사용자의 자연어 요청과 예산 상한을 받아, 네이버 쇼핑/쿠팡/아마존 스타일의 실제와 흡사한 상품 후보 5개를 만들어내고 가장 좋은 것을 추천한다.
-판매자와 URL 은 실제 서비스처럼 자연스럽게 생성하되(예: "smartstore.naver.com/...", "coupang.com/vp/products/..."), 존재를 보장할 필요는 없다.
+URL 은 실제 서비스처럼 자연스럽게 생성하되(예: "smartstore.naver.com/...", "coupang.com/vp/products/..."), 존재를 보장할 필요는 없다.
+seller 는 브랜드/스토어명이 아니라 반드시 결제가 이루어지는 판매 플랫폼 이름으로만 적는다. 허용값: "네이버쇼핑", "쿠팡", "아마존", "11번가", "G마켓", "옥션", "위메프", "티몬". seller 와 marketplace 는 동일한 값이어야 한다.
 금지 판매자 목록에 포함된 판매자는 candidates 에 절대 넣지 않는다.
 가격은 예산 상한의 40%~110% 범위로 다양하게 분포시키고, 추천은 반드시 예산 상한 이내인 후보 중에서 고른다.
 오직 아래 JSON 스키마 하나만 반환한다. 설명 텍스트 금지.
@@ -815,10 +816,29 @@ export const simulateAgentPurchase = createServerFn({ method: "POST" })
       notes: String(parsed.contract?.notes ?? "").slice(0, 200),
     };
     const rawCandidates = Array.isArray(parsed.candidates) ? parsed.candidates : [];
+    const ALLOWED_SELLERS = [
+      "네이버쇼핑",
+      "쿠팡",
+      "아마존",
+      "11번가",
+      "G마켓",
+      "옥션",
+      "위메프",
+      "티몬",
+    ];
+    const normalizeSeller = (seller: unknown, marketplace: unknown) => {
+      const raw = String(seller ?? "").trim();
+      const mk = String(marketplace ?? "").trim();
+      const match =
+        ALLOWED_SELLERS.find((s) => raw.toLowerCase() === s.toLowerCase()) ??
+        ALLOWED_SELLERS.find((s) => raw.toLowerCase().includes(s.toLowerCase())) ??
+        ALLOWED_SELLERS.find((s) => mk.toLowerCase().includes(s.toLowerCase()));
+      return match ?? "네이버쇼핑";
+    };
     const candidates: AgentCandidate[] = rawCandidates.slice(0, 6).map((c) => ({
       title: String(c?.title ?? "이름 없는 상품").slice(0, 120),
-      seller: String(c?.seller ?? "unknown").slice(0, 60),
-      marketplace: String(c?.marketplace ?? "네이버쇼핑").slice(0, 20),
+      seller: normalizeSeller(c?.seller, c?.marketplace),
+      marketplace: normalizeSeller(c?.seller, c?.marketplace),
       price_krw: Math.max(0, Math.round(Number(c?.price_krw ?? 0))),
       rating: Math.max(0, Math.min(5, Number(c?.rating ?? 0))),
       reviews: Math.max(0, Math.round(Number(c?.reviews ?? 0))),
