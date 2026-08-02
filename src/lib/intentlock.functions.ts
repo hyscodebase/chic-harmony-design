@@ -467,13 +467,14 @@ export const generateGuardianReport = createServerFn({ method: "POST" })
 export const operatorCancel = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
-    z
-      .object({
+    parseOrThrow(
+      z.object({
         order_id: z.string().uuid(),
         reason: z.string().min(10).max(200),
         idempotency_key: z.string().uuid(),
-      })
-      .parse(input),
+      }),
+      input,
+    ),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
