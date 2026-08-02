@@ -38,7 +38,7 @@ function OperatorPage() {
   const orders = useQuery({
     queryKey: ["operator-orders"],
     queryFn: () => runList(),
-    enabled: isOp,
+    retry: false,
   });
 
   const [reasonById, setReasonById] = useState<Record<string, string>>({});
@@ -65,28 +65,23 @@ function OperatorPage() {
     }
   }
 
-  if (role.isLoading) {
-    return (
-      <main className="mx-auto max-w-5xl px-6 py-16 text-sm text-muted-foreground">
-        권한 확인 중…
-      </main>
-    );
-  }
-  if (!isOp) {
-    return (
-      <main className="mx-auto max-w-md px-6 py-24 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight">운영자 전용</h1>
-        <p className="mt-3 text-sm text-muted-foreground">이 페이지는 운영자 권한이 필요합니다.</p>
-      </main>
-    );
-  }
-
   return (
     <main className="mx-auto max-w-6xl px-6 py-12">
       <div className="text-xs uppercase tracking-widest text-muted-foreground">운영자 콘솔</div>
       <h1 className="mt-3 text-3xl font-semibold tracking-tight md:text-4xl">주문 관리</h1>
+      {!role.isLoading && !isOp && (
+        <div className="mt-4 rounded-md border border-border bg-card px-3 py-2 text-xs text-muted-foreground">
+          데모 모드 — 운영자 권한이 없는 계정에서는 화면 구조만 열람됩니다. 목록 조회와 취소 실행은
+          운영자 권한이 필요합니다.
+        </div>
+      )}
       {err && (
         <div className="mt-4 rounded-md border border-border bg-muted px-3 py-2 text-xs">{err}</div>
+      )}
+      {orders.isError && (
+        <div className="mt-4 rounded-md border border-border bg-muted px-3 py-2 text-xs">
+          주문 목록을 불러올 수 없습니다: {(orders.error as Error).message}
+        </div>
       )}
       <div className="mt-8 overflow-hidden rounded-lg border border-border">
         <table className="w-full text-sm">
