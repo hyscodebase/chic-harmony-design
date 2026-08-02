@@ -754,14 +754,15 @@ type AgentSim = {
 export const simulateAgentPurchase = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
-    z
-      .object({
+    parseOrThrow(
+      z.object({
         request: z.string().min(5).max(400),
         amount_limit_krw: z.number().int().min(1000).max(1_000_000_000),
         banned_sellers: z.string().max(200).optional().default(""),
         force_block: z.boolean().optional().default(false),
-      })
-      .parse(input),
+      }),
+      input,
+    ),
   )
   .handler(async ({ data }) => {
     const banned = data.banned_sellers
