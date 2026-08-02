@@ -24,7 +24,7 @@ const IdemKey = z.string().min(8).max(128);
 export const kbVerifyIntent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
-    z.object({ intent: IntentBindingSchema, idempotencyKey: IdemKey }).parse(input),
+    parseOrThrow(z.object({ intent: IntentBindingSchema, idempotencyKey: IdemKey }), input),
   )
   .handler(async ({ data }): Promise<VerifiedIntent> => {
     const { getKbPaymentAdapter } = await import("./kb-payment.server");
