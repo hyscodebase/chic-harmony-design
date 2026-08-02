@@ -62,10 +62,10 @@ export function formatZodError(error: z.ZodError): string {
     .join(" / ");
 }
 
-export function parseOrThrow<T>(schema: z.ZodSchema<T>, input: unknown): T {
+export function parseOrThrow<T extends z.ZodTypeAny>(schema: T, input: unknown): z.infer<T> {
   const result = schema.safeParse(input);
   if (!result.success) {
     throw new Error(formatZodError(result.error));
   }
-  return result.data;
+  return result.data as z.infer<T>;
 }
