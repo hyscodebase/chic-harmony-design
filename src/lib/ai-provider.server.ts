@@ -10,7 +10,7 @@ type AIProviderConfig = {
 };
 
 const LOVABLE_AI_GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
-const DEFAULT_MODEL = "google/gemini-3.6-flash";
+const DEFAULT_MODEL = "google/gemini-2.5-flash";
 
 function getAIProviderConfig(): AIProviderConfig {
   // Lovable AI Gateway (default). A custom OpenAI-compatible provider can still
