@@ -95,12 +95,13 @@ export const createOrder = createServerFn({ method: "POST" })
 export const createContract = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
-    z
-      .object({
+    parseOrThrow(
+      z.object({
         order_id: z.string().uuid(),
         natural_language: z.string().min(5).max(500),
-      })
-      .parse(input),
+      }),
+      input,
+    ),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
