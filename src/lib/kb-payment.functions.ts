@@ -34,7 +34,7 @@ export const kbVerifyIntent = createServerFn({ method: "POST" })
 export const kbIssueVirtualCard = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
-    z.object({ intent: IntentBindingSchema, idempotencyKey: IdemKey }).parse(input),
+    parseOrThrow(z.object({ intent: IntentBindingSchema, idempotencyKey: IdemKey }), input),
   )
   .handler(async ({ data }): Promise<VirtualCardCredential> => {
     const { getKbPaymentAdapter } = await import("./kb-payment.server");
