@@ -61,14 +61,15 @@ export const kbExchangeNetworkToken = createServerFn({ method: "POST" })
 export const kbAuthorizePayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
-    z
-      .object({
+    parseOrThrow(
+      z.object({
         intent: IntentBindingSchema,
         cardId: z.string().min(4).max(64),
         networkToken: z.string().min(4).max(128),
         idempotencyKey: IdemKey,
-      })
-      .parse(input),
+      }),
+      input,
+    ),
   )
   .handler(async ({ data }): Promise<PaymentAuthorization> => {
     const { getKbPaymentAdapter } = await import("./kb-payment.server");
