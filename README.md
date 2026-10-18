@@ -4,7 +4,7 @@ IntentLock은 AI 쇼핑 에이전트가 결제를 요청하기 전에 사용자�
 
 > 이 저장소는 대회 시연용 프로토타입입니다. 실제 카드·계좌 정보를 수집하지 않으며 실제 결제를 수행하지 않습니다. 화면의 가상카드, 네트워크 토큰, 영수증 및 상품 후보는 모두 샌드박스 데이터입니다.
 
-![IntentLock 결제 승인 흐름](src/assets/intentlock-flow.png)
+![IntentLock 결제 승인 흐름](src/assets/intentlock-flow-independent.png)
 
 ## 핵심 기능
 
@@ -25,8 +25,8 @@ flowchart LR
   A --> SF[인증된 Server Functions]
   SF --> DB[(Supabase PostgreSQL + RLS)]
   SF --> AI[OpenAI-compatible AI Provider]
-  SF --> KB[KB 결제 Mock Adapter]
-  KB --> G{Guardian 규칙 검증}
+  SF --> PAYMENT[IntentLock 결제 Mock Adapter]
+  PAYMENT --> G{Guardian 규칙 검증}
   G -->|일치| OK[일회용 권한 발급]
   G -->|불일치| BLOCK[결제 차단]
 ```
@@ -99,7 +99,7 @@ npm run check
 
 ## 구현 범위와 한계
 
-- KB 결제 연동은 제안 구조를 보여 주는 메모리 기반 Mock Adapter입니다. 서버가 재시작되면 가상카드와 네트워크 토큰 상태는 초기화됩니다.
+- 샌드박스 결제는 제안 구조를 보여 주는 메모리 기반 Mock Adapter입니다. 서버가 재시작되면 가상카드와 네트워크 토큰 상태는 초기화됩니다.
 - AI가 생성한 상품명·판매자·URL은 시연 데이터이며 실제 판매 페이지의 존재나 가격을 보장하지 않습니다.
 - 실제 결제 도입 전에는 금융사 API 계약, 키 관리, 웹훅 검증, DB 트랜잭션, 환불 대사 및 규제 검토가 추가로 필요합니다.
 - Supabase RLS는 조회 범위를 사용자 소유 데이터로 제한하고, 브라우저의 직접 변경 권한은 제출용 보안 마이그레이션에서 회수합니다.

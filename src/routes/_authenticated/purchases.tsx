@@ -8,6 +8,12 @@ export const Route = createFileRoute("/_authenticated/purchases")({
     meta: [
       { title: "구매 내역 · IntentLock" },
       { name: "description", content: "IntentLock 결제·이용권 내역" },
+      { property: "og:title", content: "구매 내역 · IntentLock" },
+      { property: "og:description", content: "IntentLock 결제·이용권 내역" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { property: "og:image", content: "https://intentlock.kro.kr/intentlock-share.jpg" },
+      { name: "twitter:image", content: "https://intentlock.kro.kr/intentlock-share.jpg" },
       { name: "robots", content: "noindex" },
     ],
   }),

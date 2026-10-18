@@ -1,4 +1,4 @@
-// Server-only KB payment adapter. Never import from client bundles.
+// Server-only payment adapter. Never import from client bundles.
 import type {
   KbPaymentAdapter,
   VerifyIntentInput,
@@ -67,7 +67,7 @@ function ensureIntent(intentToken: string): IntentRecord {
 }
 
 // Public helper: register an intent that section-4 already produced client-side.
-// Called once from the KB section entry so verify/issue can operate against real state.
+// Called once from the payment section entry so verify/issue can operate against real state.
 export function registerIntent(input: {
   intentToken: string;
   orderId: string;
@@ -126,16 +126,16 @@ export class MockKbPaymentAdapter implements KbPaymentAdapter {
   async issueVirtualCard(input: IssueVirtualCardInput): Promise<VirtualCardCredential> {
     return idem(input.idempotencyKey, () => {
       const r = ensureIntent(input.intent.intentToken);
-      const cardId = `KBIC-${rand(6)}`;
+      const cardId = `ILIC-${rand(6)}`;
       const card: CardRecord = {
         cardId,
-        displayName: "KB Intent Card",
+        displayName: "IntentLock Card",
         maskedNumber: "5410 90•• •••• 4821",
         limitKrw: r.amount,
         allowedMerchants: r.merchant.split(" · "),
         usesAllowed: 1,
         expiresAt: new Date(r.expiresAt).toISOString(),
-        linkedFundingSource: "KB국민카드 •••• 5678",
+        linkedFundingSource: "테스트 결제수단 •••• 5678",
         status: "ACTIVE",
         orderId: r.orderId,
       };
@@ -149,12 +149,12 @@ export class MockKbPaymentAdapter implements KbPaymentAdapter {
       const r = ensureIntent(input.intent.intentToken);
       const card = store.cards.get(input.cardId);
       if (!card || card.status !== "ACTIVE") throw new Error("가상카드가 유효하지 않습니다.");
-      const networkToken = `NPT-KB-${rand(6)}`;
+      const networkToken = `NPT-IL-${rand(6)}`;
       card.boundNetworkToken = networkToken;
       r.status = "EXCHANGED";
       return {
         networkToken,
-        network: "KB",
+        network: "IntentLock",
         status: "TOKENIZED",
         issuedAt: new Date().toISOString(),
       };
@@ -181,7 +181,7 @@ export class MockKbPaymentAdapter implements KbPaymentAdapter {
       const last4 = input.networkToken.slice(-4);
       const auth: AuthRecord = {
         status: "AUTHORIZED",
-        approvalNo: `KB-APR-${rand(4)}`,
+        approvalNo: `IL-APR-${rand(4)}`,
         authorizedAt: new Date().toISOString(),
         amount: r.amount,
         merchant: r.merchant,
@@ -206,7 +206,7 @@ export class MockKbPaymentAdapter implements KbPaymentAdapter {
 
 export function getKbPaymentAdapter(): KbPaymentAdapter {
   const mode = process.env.KB_PAYMENT_MODE ?? "mock";
-  // Only "mock" is implemented; replace with a real adapter when KB APIs are available.
+  // Only "mock" is implemented; replace with a real adapter when payment provider APIs are available.
   if (mode !== "mock") {
     console.warn(`[kb-payment] KB_PAYMENT_MODE=${mode} not implemented; falling back to mock.`);
   }

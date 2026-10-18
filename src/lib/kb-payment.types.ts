@@ -1,4 +1,4 @@
-// Shared, client-safe types for the KB payment adapter.
+// Shared, client-safe types for the payment adapter.
 
 export type KbPaymentStatus =
   | "IDLE"
@@ -43,13 +43,13 @@ export interface IssueVirtualCardInput {
 
 export interface VirtualCardCredential {
   cardId: string;
-  displayName: string; // "KB Intent Card"
+  displayName: string; // "IntentLock Card"
   maskedNumber: string; // "5410 90•• •••• 4821"
   limitKrw: number;
   allowedMerchants: string[];
   usesAllowed: number;
   expiresAt: string; // ISO, ~5m
-  linkedFundingSource: string; // "KB국민카드 •••• 5678"
+  linkedFundingSource: string; // "테스트 결제수단 •••• 5678"
   status: VirtualCardStatus;
 }
 
@@ -60,8 +60,8 @@ export interface ExchangeNetworkTokenInput {
 }
 
 export interface NetworkPaymentToken {
-  networkToken: string; // e.g. NPT-KB-7F29A8C1E45D (redacted client-side)
-  network: "KB";
+  networkToken: string; // e.g. NPT-IL-7F29A8C1E45D (redacted client-side)
+  network: "IntentLock";
   status: "TOKENIZED";
   issuedAt: string;
 }
@@ -80,7 +80,7 @@ export interface PaymentAuthorization {
   amount: number;
   merchant: string;
   productTitle: string;
-  method: string; // masked, e.g. "KB Intent Card"
+  method: string; // masked, e.g. "IntentLock Card"
   networkTokenLast4: string;
   intentTokenStatus: "CONSUMED";
   virtualCardStatus: "DESTROYED";

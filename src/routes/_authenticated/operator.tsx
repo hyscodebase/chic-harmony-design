@@ -9,6 +9,12 @@ export const Route = createFileRoute("/_authenticated/operator")({
     meta: [
       { title: "운영자 · IntentLock" },
       { name: "description", content: "운영자 전용 주문 관리 도구" },
+      { property: "og:title", content: "운영자 · IntentLock" },
+      { property: "og:description", content: "운영자 전용 주문 관리 도구" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { property: "og:image", content: "https://intentlock.kro.kr/intentlock-share.jpg" },
+      { name: "twitter:image", content: "https://intentlock.kro.kr/intentlock-share.jpg" },
       { name: "robots", content: "noindex" },
     ],
   }),

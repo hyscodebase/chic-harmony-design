@@ -34,6 +34,8 @@ export const Route = createFileRoute("/_authenticated/agent")({
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { property: "og:image", content: "https://intentlock.kro.kr/intentlock-share.jpg" },
+      { name: "twitter:image", content: "https://intentlock.kro.kr/intentlock-share.jpg" },
     ],
   }),
   errorComponent: ({ error }) => (
@@ -464,7 +466,7 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
-// ---------- Section 5: KB Network Payment ----------
+// ---------- Section 5: IntentLock Network Payment ----------
 
 function KbNetworkPaymentSection({
   intentToken,
@@ -519,7 +521,7 @@ function KbNetworkPaymentSection({
     status === "AUTHORIZED"
       ? "결제 승인 완료"
       : status === "IDLE"
-        ? "KB 자동결제 실행"
+        ? "자동결제 실행"
         : "결제 권한 발급 중...";
 
   const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
@@ -592,7 +594,7 @@ function KbNetworkPaymentSection({
       stateLabel: intentStatus === "ISSUED" ? "PENDING" : "VERIFIED",
     },
     {
-      title: "KB 결제 권한 발급",
+      title: "결제 권한 발급",
       detail:
         "등록 결제수단을 기반으로 가맹점·금액·유효시간이 제한된 일회용 가상카드를 발급합니다.",
       state:
@@ -607,7 +609,7 @@ function KbNetworkPaymentSection({
     },
     {
       title: "Network Payment Token 교환",
-      value: netToken?.networkToken ?? "NPT-KB-••••••••",
+      value: netToken?.networkToken ?? "NPT-IL-••••••••",
       detail: "Intent Token 을 카드 네트워크에서 사용할 수 있는 제한형 결제 토큰으로 교환합니다.",
       state:
         !netToken && status !== "EXCHANGING_NETWORK_TOKEN"
@@ -629,35 +631,35 @@ function KbNetworkPaymentSection({
   return (
     <section className="mt-10 rounded-2xl border border-border bg-card p-6">
       <div className="mb-6 flex items-baseline justify-between">
-        <h2 className="text-lg font-semibold tracking-tight">5. KB 네트워크 결제</h2>
+        <h2 className="text-lg font-semibold tracking-tight">5. IntentLock 네트워크 결제</h2>
         <span className="text-xs uppercase tracking-widest text-muted-foreground">
           {status === "AUTHORIZED" ? "PAYMENT AUTHORIZED" : "INTENT → PAYMENT TOKEN"}
         </span>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        {/* Left: KB Virtual Card */}
+        {/* Left: IntentLock Virtual Card */}
         <div className="rounded-xl border border-border p-5">
-          <div className="text-sm font-semibold">KB 일회용 가상카드</div>
+          <div className="text-sm font-semibold">IntentLock 일회용 가상카드</div>
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
             등록된 결제수단을 기반으로 이번 거래에서만 사용할 수 있는 결제 자격증명을 발급합니다.
           </p>
 
           <div
-            className="mt-4 rounded-xl border p-4"
-            style={{
-              borderColor: cardStatus === "DESTROYED" ? undefined : "#F5C518",
-              background: cardStatus === "DESTROYED" ? "hsl(var(--muted))" : "#FFFBEA",
-            }}
+            className={`mt-4 rounded-lg border p-4 ${
+              cardStatus === "DESTROYED"
+                ? "border-border bg-muted"
+                : "border-foreground/30 bg-background"
+            }`}
           >
             <div className="flex items-center justify-between">
-              <div className="text-[10px] font-mono uppercase tracking-widest text-black/60">
-                KB Intent Card
+              <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
+                IntentLock Card
               </div>
               <span
                 className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${
                   cardStatus === "ACTIVE"
-                    ? "border-black bg-black text-white"
+                    ? "border-foreground bg-foreground text-background"
                     : cardStatus === "DESTROYED"
                       ? "border-border bg-background text-muted-foreground"
                       : "border-border bg-background text-muted-foreground"
@@ -672,10 +674,10 @@ function KbNetworkPaymentSection({
                       : "DESTROYED"}
               </span>
             </div>
-            <div className="mt-3 font-mono text-lg tracking-widest text-black">
+            <div className="mt-3 font-mono text-lg tracking-widest text-foreground">
               {card?.maskedNumber ?? "5410 90•• •••• 4821"}
             </div>
-            <div className="mt-4 grid grid-cols-2 gap-2 text-[11px] text-black/70">
+            <div className="mt-4 grid grid-cols-2 gap-2 text-[11px] text-foreground/70">
               <div>
                 <div className="text-[9px] uppercase tracking-widest opacity-60">결제 한도</div>
                 <div className="mt-0.5 font-medium">{amount.toLocaleString("ko-KR")}원</div>
@@ -691,11 +693,11 @@ function KbNetworkPaymentSection({
               <div className="col-span-2">
                 <div className="text-[9px] uppercase tracking-widest opacity-60">연결 결제수단</div>
                 <div className="mt-0.5 font-medium">
-                  {card?.linkedFundingSource ?? "KB국민카드 •••• 5678"}
+                  {card?.linkedFundingSource ?? "테스트 결제수단 •••• 5678"}
                 </div>
               </div>
             </div>
-            <div className="mt-3 text-[10px] leading-relaxed text-black/50">
+            <div className="mt-3 text-[10px] leading-relaxed text-muted-foreground">
               카드번호는 데모용 마스킹 번호이며 실제 결제정보가 아닙니다.
             </div>
           </div>
@@ -719,7 +721,7 @@ function KbNetworkPaymentSection({
         <div className="rounded-xl border border-border p-5">
           <div className="text-sm font-semibold">네트워크 결제 토큰 교환</div>
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-            Intent Token 을 KB 결제 권한과 카드 네트워크 토큰으로 순차 교환합니다.
+            Intent Token 을 제한형 결제 권한과 카드 네트워크 토큰으로 순차 교환합니다.
           </p>
           <ol className="mt-4 space-y-3">
             {steps.map((s, i) => (
@@ -804,37 +806,34 @@ function KbNetworkPaymentSection({
       )}
 
       {auth && (
-        <div
-          className="mt-6 rounded-xl border p-5"
-          style={{ borderColor: "#16a34a", background: "#f0fdf4" }}
-        >
+        <div className="mt-6 rounded-lg border border-foreground/30 bg-background p-5">
           <div className="flex items-baseline justify-between">
-            <div className="text-sm font-semibold text-green-900">KB 네트워크 결제 승인 완료</div>
-            <span className="rounded-full bg-green-600 px-2 py-0.5 text-[10px] font-medium text-white">
+            <div className="text-sm font-semibold text-foreground">네트워크 결제 승인 완료</div>
+            <span className="rounded-full bg-foreground px-2 py-0.5 text-[10px] font-medium text-background">
               AUTHORIZED
             </span>
           </div>
-          <div className="mt-4 grid gap-2 text-xs text-green-950 md:grid-cols-2">
+          <div className="mt-4 grid gap-2 text-xs text-foreground md:grid-cols-2">
             <KRow label="상품" value={auth.productTitle} />
             <KRow label="판매자" value={auth.merchant} />
             <KRow label="승인 금액" value={`${auth.amount.toLocaleString("ko-KR")}원`} />
             <KRow label="사용 결제수단" value={auth.method} />
-            <KRow label="Network Token" value={`NPT-KB-•••• ${auth.networkTokenLast4}`} />
+            <KRow label="Network Token" value={`NPT-IL-•••• ${auth.networkTokenLast4}`} />
             <KRow label="승인 번호" value={auth.approvalNo} />
             <KRow label="승인 시간" value={new Date(auth.authorizedAt).toLocaleString("ko-KR")} />
             <KRow label="Intent Token" value={auth.intentTokenStatus} />
             <KRow label="가상카드" value={auth.virtualCardStatus} />
           </div>
-          <div className="mt-4 text-xs leading-relaxed text-green-900">
+          <div className="mt-4 text-xs leading-relaxed text-foreground">
             사용자가 승인한 의도와 일치하는 거래에만 결제 권한이 사용되었습니다.
           </div>
         </div>
       )}
 
       <div className="mt-6 text-[11px] leading-relaxed text-muted-foreground">
-        본 화면은 KB의 일회용 가상카드 및 네트워크 토큰 발급 구조를 제안하기 위한 샌드박스
-        시뮬레이션입니다. 실제 운영 시에는 KB 카드·은행 시스템 및 카드 네트워크와의 연동과 별도 보안
-        심사가 필요합니다.
+        본 화면은 IntentLock의 일회용 가상카드 및 네트워크 토큰 발급 흐름을 보여주는 샌드박스
+        시뮬레이션입니다. 실제 결제는 수행하지 않으며, 실제 운영에는 결제 제공사와의 연동 및 별도
+        보안 심사가 필요합니다.
       </div>
     </section>
   );
@@ -842,8 +841,8 @@ function KbNetworkPaymentSection({
 
 function KRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-baseline justify-between gap-3 border-b border-green-900/10 py-1">
-      <span className="text-green-900/60">{label}</span>
+    <div className="flex items-baseline justify-between gap-3 border-b border-border/40 py-1">
+      <span className="text-muted-foreground">{label}</span>
       <span className="text-right font-medium">{value}</span>
     </div>
   );

@@ -13,6 +13,12 @@ export const Route = createFileRoute("/_authenticated/beta/")({
     meta: [
       { title: "Beta Pass · IntentLock" },
       { name: "description", content: "Guardian 리포트를 생성하고 조회하세요." },
+      { property: "og:title", content: "Beta Pass · IntentLock" },
+      { property: "og:description", content: "Guardian 리포트를 생성하고 조회하세요." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { property: "og:image", content: "https://intentlock.kro.kr/intentlock-share.jpg" },
+      { name: "twitter:image", content: "https://intentlock.kro.kr/intentlock-share.jpg" },
       { name: "robots", content: "noindex" },
     ],
   }),
