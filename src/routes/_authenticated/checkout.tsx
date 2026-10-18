@@ -8,6 +8,12 @@ export const Route = createFileRoute("/_authenticated/checkout")({
     meta: [
       { title: "구매 · IntentLock Beta Pass" },
       { name: "description", content: "Intent Contract 를 승인하고 Beta Pass 를 구매합니다." },
+      { property: "og:title", content: "구매 · IntentLock Beta Pass" },
+      { property: "og:description", content: "Intent Contract 를 승인하고 Beta Pass 를 구매합니다." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { property: "og:image", content: "https://intentlock.kro.kr/intentlock-share.jpg" },
+      { name: "twitter:image", content: "https://intentlock.kro.kr/intentlock-share.jpg" },
       { name: "robots", content: "noindex" },
     ],
   }),

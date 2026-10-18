@@ -8,6 +8,12 @@ export const Route = createFileRoute("/_authenticated/beta/reports/$id")({
     meta: [
       { title: "Guardian 리포트 · IntentLock" },
       { name: "description", content: "Guardian 판정 결과 상세" },
+      { property: "og:title", content: "Guardian 리포트 · IntentLock" },
+      { property: "og:description", content: "Guardian 판정 결과 상세" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { property: "og:image", content: "https://intentlock.kro.kr/intentlock-share.jpg" },
+      { name: "twitter:image", content: "https://intentlock.kro.kr/intentlock-share.jpg" },
       { name: "robots", content: "noindex" },
     ],
   }),

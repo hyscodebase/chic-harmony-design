@@ -7,7 +7,13 @@ export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
       { title: "로그인 · IntentLock" },
-      { name: "description", content: "이메일로 IntentLock 에 로그인하세요." },
+      { name: "description", content: "Google 계정으로 IntentLock에 로그인하세요." },
+      { property: "og:title", content: "로그인 · IntentLock" },
+      { property: "og:description", content: "Google 계정으로 IntentLock에 로그인하세요." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { property: "og:image", content: "https://intentlock.kro.kr/intentlock-share.jpg" },
+      { name: "twitter:image", content: "https://intentlock.kro.kr/intentlock-share.jpg" },
       { name: "robots", content: "noindex" },
     ],
   }),

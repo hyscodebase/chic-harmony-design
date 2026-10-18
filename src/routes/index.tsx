@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import flowDiagram from "@/assets/intentlock-flow.png";
+import flowDiagram from "@/assets/intentlock-flow-independent.png";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -18,6 +18,8 @@ export const Route = createFileRoute("/")({
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { property: "og:image", content: "https://intentlock.kro.kr/intentlock-share.jpg" },
+      { name: "twitter:image", content: "https://intentlock.kro.kr/intentlock-share.jpg" },
     ],
   }),
   component: Home,
@@ -174,7 +176,7 @@ function HowItWorks() {
           통제합니다.
         </h2>
         <p className="mt-6 max-w-2xl text-base leading-relaxed text-muted-foreground">
-          AI 에이전트는 쇼핑 담당자, KB IntentLock 은 법인카드 승인 담당자입니다. AI 가 물건을
+          AI 에이전트는 쇼핑 담당자, IntentLock 은 결제 승인 담당자입니다. AI 가 물건을
           골라도 IntentLock 이 승인하지 않으면 돈은 빠져나가지 않습니다.
         </p>
 
@@ -186,7 +188,7 @@ function HowItWorks() {
             loading="lazy"
           />
           <figcaption className="border-t border-border px-6 py-3 text-xs text-muted-foreground">
-            사용자 · 구매 Agent · KB IntentLock · 결제 시스템 · 판매자
+            사용자 · 구매 Agent · IntentLock · 결제 시스템 · 판매자
           </figcaption>
         </figure>
 
@@ -238,7 +240,7 @@ function HowItWorks() {
   "expires_at": "2026-07-25T23:59:59+09:00"
 }
 
-INTENT_ID:  KB-20260724-001
+INTENT_ID:  IL-20260724-001
 FINGERPRINT: 8f5a1c...
 STATUS:     ACTIVE`}
           </pre>
@@ -268,7 +270,7 @@ REASON:  예산 초과 · 정기결제 미승인
             일회용 결제 권한을 발급합니다.
           </p>
           <p className="mt-6 max-w-2xl text-sm leading-relaxed opacity-70">
-            IntentLock 은 세상의 모든 AI 결제를 감시하지 않습니다. KB IntentLock 결제 API 또는 전용
+            IntentLock 은 세상의 모든 AI 결제를 감시하지 않습니다. IntentLock 결제 API 또는 전용
             가상카드를 사용하도록 설계된 AI Agent 의 결제만 통제합니다 — “AI Agent 전용 결제 인프라”
             입니다.
           </p>
