@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "project": "chic-harmony-design",
+  "repository": "hyscodebase/chic-harmony-design",
+  "curation_version": 1,
+  "curated_at": "2026-10-26T23:10:00Z",
+  "baseline_commit": "825feb39c9c9c6fcc1db797f9d88179ff529da29",
+  "scope": "Historical personal design rationale and static source correspondence; no team document redistribution",
+  "sources": [
+    {
+      "conversation_id": "6a61ef58-68e8-83ee-9755-39ea38abc149",
+      "message_id": "ba577454-691b-5531-abf3-72961d889783",
+      "updated_at": "2026-07-24T08:21:10.929888Z",
+      "url": "https://chatgpt.com/c/6a61ef58-68e8-83ee-9755-39ea38abc149?messageId=ba577454-691b-5531-abf3-72961d889783",
+      "read_coverage": "Full 5545-character assistant design response; neighboring user request visible text only, content_omitted=true"
+    }
+  ],
+  "source_repository_blobs": {
+    "README.md": "8a0dea594c6c5647a271d0703e81e2fd45d45e4c",
+    "src/lib/kb-payment.types.ts": "beeeca852cb81f56c2bcd49b5e19edc3f945216e",
+    "src/lib/kb-payment.server.ts": "485f6fec327a9ebd3b789a5e89b02db2a9c57ab7",
+    "src/lib/kb-payment.functions.ts": "1753f3dc0b592c84159fe4bd63e08addd1d64ff2"
+  },
+  "files": [
+    {
+      "path": "curated-chat/design/mock-payment-lifecycle.md",
+      "sha256": "92c493cb64d1f920f02f29b167fcc43f33e2a1f6f31be1cab8935ac37f2d61d5",
+      "bytes": 5012,
+      "validation": "source-read; static-correspondence-reviewed; runtime-not-tested"
+    },
+    {
+      "path": "curated-chat/README.md",
+      "sha256": "a3360df0c8314e8e5970d2f15a4899e0b9d44827ce241d167d1bebf3553d3cfb",
+      "bytes": 550,
+      "validation": "source-read; static-correspondence-reviewed; runtime-not-tested"
+    },
+    {
+      "path": "curated-chat/CHANGELOG.md",
+      "sha256": "c5d0828969d1391d43da3e925f0f5df7950475670c6132b0ffd53a95b4dfe427",
+      "bytes": 359,
+      "validation": "source-read; static-correspondence-reviewed; runtime-not-tested"
+    },
+    {
+      "path": "curated-chat/runs/2026-10-27.md",
+      "sha256": "9eb2e1a1713b87dec22bf94284c9c69e5a075ad48e53fad1caa8a3cf888639ab",
+      "bytes": 2279,
+      "validation": "source-read; static-correspondence-reviewed; runtime-not-tested"
+    }
+  ],
+  "coverage_report": "curated-chat/runs/2026-10-27.md",
+  "deduplication": "No curated-chat paths at baseline; no application/root README changes; KNOWL existing UI source unchanged and not duplicated",
+  "verification": {
+    "application_tests": "not run; documentation only",
+    "self_hash": "Manifest excluded from circular SHA256 list; verify through Git blob/readback"
+  }
+}
