@@ -30,12 +30,12 @@ function Home() {
     <main className="min-h-screen bg-background text-foreground">
       <section className="relative overflow-hidden border-b border-border">
         <GridBg />
-        <div className="relative mx-auto max-w-6xl px-6 pt-24 pb-24 md:pt-32 md:pb-32">
+        <div className="relative mx-auto max-w-6xl px-5 pt-14 pb-16 md:px-6 md:pt-32 md:pb-32">
           <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1 text-xs text-muted-foreground">
             <span className="h-1.5 w-1.5 rounded-full bg-foreground" />
             Submission Build · Guarded Checkout · 샌드박스
           </div>
-          <h1 className="max-w-4xl text-5xl font-semibold leading-[1.02] tracking-[-0.03em] md:text-7xl">
+          <h1 className="max-w-4xl text-[2.6rem] font-semibold leading-[1.02] tracking-[-0.03em] md:text-7xl">
             당신이 승인한 <span className="italic font-light text-muted-foreground">구매만</span>
             <br />
             결제됩니다.
@@ -59,15 +59,15 @@ function Home() {
             </Link>
           </div>
 
-          <div className="mt-20 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border md:grid-cols-4">
+          <div className="mt-14 md:mt-20 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border md:grid-cols-4">
             {[
               ["₩1,000", "상품 기준가"],
               ["30일", "이용권 유효기간"],
               ["10건", "Guardian 리포트"],
               ["SHA-256", "계약 지문"],
             ].map(([n, l]) => (
-              <div key={l} className="bg-background px-6 py-8">
-                <div className="text-3xl font-semibold tracking-tight md:text-4xl">{n}</div>
+              <div key={l} className="bg-background px-4 py-6 md:px-6 md:py-8">
+                <div className="text-2xl font-semibold tracking-tight md:text-4xl">{n}</div>
                 <div className="mt-1 text-xs uppercase tracking-widest text-muted-foreground">
                   {l}
                 </div>
@@ -97,12 +97,12 @@ function Home() {
       </section>
 
       <section className="border-b border-border">
-        <div className="mx-auto max-w-6xl px-6 py-24">
+        <div className="mx-auto max-w-6xl px-5 py-16 md:px-6 md:py-24">
           <div className="text-xs uppercase tracking-widest text-muted-foreground">흐름</div>
-          <h2 className="mt-4 max-w-2xl text-4xl font-semibold tracking-tight md:text-5xl">
+          <h2 className="mt-4 max-w-2xl text-3xl font-semibold tracking-tight md:text-5xl">
             4단계의 서버 게이트.
           </h2>
-          <div className="mt-14 grid gap-px overflow-hidden rounded-lg border border-border bg-border md:grid-cols-2">
+          <div className="mt-10 md:mt-14 grid gap-px overflow-hidden rounded-lg border border-border bg-border md:grid-cols-2">
             {[
               [
                 "01",
@@ -121,7 +121,7 @@ function Home() {
                 "Beta Pass 지급을 정확히 1회. 취소·환불 시 권한은 자동 회수됩니다.",
               ],
             ].map(([n, t, d]) => (
-              <article key={n} className="bg-background p-8">
+              <article key={n} className="bg-background p-6 md:p-8">
                 <div className="flex items-baseline justify-between text-xs text-muted-foreground">
                   <span>단계 {n}</span>
                   <span className="font-mono">/{n}</span>
@@ -165,11 +165,11 @@ function GridBg() {
 function HowItWorks() {
   return (
     <section className="border-b border-border">
-      <div className="mx-auto max-w-6xl px-6 py-24">
+      <div className="mx-auto max-w-6xl px-5 py-16 md:px-6 md:py-24">
         <div className="text-xs uppercase tracking-widest text-muted-foreground">
           어떻게 작동하는가
         </div>
-        <h2 className="mt-4 max-w-3xl text-4xl font-semibold tracking-tight md:text-5xl">
+        <h2 className="mt-4 max-w-3xl text-3xl font-semibold tracking-tight md:text-5xl">
           AI를 통제하지 않습니다.
           <br />
           <span className="italic font-light text-muted-foreground">결제 승인 게이트웨이</span>를
@@ -219,7 +219,7 @@ function HowItWorks() {
               "Agent 신고 · 판매자 주문서 · 결제 청구액 세 가지가 일치할 때만 승인. 하나라도 다르면 즉시 차단·감사 기록.",
             ],
           ].map(([t, d]) => (
-            <article key={t} className="bg-background p-8">
+            <article key={t} className="bg-background p-6 md:p-8">
               <h3 className="text-xl font-semibold tracking-tight">{t}</h3>
               <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{d}</p>
             </article>
@@ -262,9 +262,9 @@ REASON:  예산 초과 · 정기결제 미승인
           </pre>
         </div>
 
-        <div className="mt-16 rounded-lg border border-border bg-foreground p-8 text-background md:p-10">
+        <div className="mt-16 rounded-lg border border-border bg-foreground p-6 text-background md:p-10">
           <div className="text-xs uppercase tracking-widest opacity-60">한 문장 정리</div>
-          <p className="mt-4 text-2xl font-semibold leading-snug tracking-tight md:text-3xl">
+          <p className="mt-4 text-xl font-semibold leading-snug tracking-tight md:text-3xl">
             AI 의 판단을 막지 않습니다. AI 가 돈을 쓰기 직전, 사용자가 승인한 원래 의도와 실제 결제
             요청을 대조해 <span className="italic font-light opacity-80">일치할 때만</span> 제한된
             일회용 결제 권한을 발급합니다.

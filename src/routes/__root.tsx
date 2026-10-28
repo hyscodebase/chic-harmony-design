@@ -167,14 +167,21 @@ function SiteChrome() {
   }, []);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-        <Link to="/" className="flex items-center gap-2">
-          <span className="grid h-6 w-6 place-items-center bg-foreground text-background text-[10px] font-bold">
+    <header className="sticky top-0 z-40 flex flex-col border-b border-border bg-background/85 backdrop-blur">
+      <nav className="order-last flex gap-5 overflow-x-auto border-t border-border px-4 py-2.5 text-[13px] text-muted-foreground [scrollbar-width:none] md:hidden">
+        <Link to="/checkout" className="shrink-0 hover:text-foreground">구매</Link>
+        <Link to="/agent" className="shrink-0 hover:text-foreground">AI 에이전트</Link>
+        <Link to="/purchases" className="shrink-0 hover:text-foreground">구매 내역</Link>
+        <Link to="/beta" className="shrink-0 hover:text-foreground">Beta Pass</Link>
+        <Link to="/operator" className="shrink-0 hover:text-foreground">운영자</Link>
+      </nav>
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 md:px-6 md:py-4">
+        <Link to="/" className="flex min-w-0 items-center gap-2">
+          <span className="grid h-6 w-6 shrink-0 place-items-center bg-foreground text-background text-[10px] font-bold">
             IL
           </span>
           <span className="text-sm font-semibold tracking-tight">IntentLock</span>
-          <span className="ml-2 rounded-full border border-border px-2 py-0.5 text-[10px] uppercase tracking-widest text-muted-foreground">
+          <span className="ml-2 hidden rounded-full border border-border px-2 py-0.5 text-[10px] uppercase tracking-widest text-muted-foreground sm:inline">
             샌드박스
           </span>
         </Link>
