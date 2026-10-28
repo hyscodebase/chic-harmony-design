@@ -167,7 +167,7 @@ function SiteChrome() {
   }, []);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur">
+    <header className="sticky top-0 z-40 flex flex-col border-b border-border bg-background/85 backdrop-blur">
       <nav className="order-last flex gap-5 overflow-x-auto border-t border-border px-4 py-2.5 text-[13px] text-muted-foreground [scrollbar-width:none] md:hidden">
         <Link to="/checkout" className="shrink-0 hover:text-foreground">구매</Link>
         <Link to="/agent" className="shrink-0 hover:text-foreground">AI 에이전트</Link>
